@@ -40,6 +40,7 @@ class StoreTestRequest extends FormRequest
             'is_active' => 'required|boolean',
             'is_group' => 'nullable|boolean',
             'has_subtests' => 'nullable|boolean',
+            'has_sensitivity' => 'nullable|boolean',
             'subtest_definitions' => 'nullable|array',
             'parent_id' => 'nullable|exists:tests,id',
             'hmo_prices' => 'nullable|array',

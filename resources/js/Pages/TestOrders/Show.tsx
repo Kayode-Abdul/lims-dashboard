@@ -29,7 +29,8 @@ import {
     Save,
     Activity,
     CheckCircle2,
-    Upload
+    Upload,
+    Printer
 } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import React, { useState, FormEvent, ChangeEvent } from 'react';
@@ -61,6 +62,7 @@ interface Test {
     test_code: string;
     turnaround_time: string;
     has_subtests: boolean;
+    has_sensitivity?: boolean;
     units?: string;
     reference_range?: string;
     reference_range_male?: string;
@@ -94,6 +96,7 @@ interface TestResult {
     is_abnormal: boolean;
     verified_at: string | null;
     subtest_results?: any;
+    sensitivities?: any[];
     notes?: string | null;
     interpretation?: string | null;
 }
@@ -120,7 +123,7 @@ interface Summary {
     paymentStatus: 'paid' | 'partial' | 'pending';
 }
 
-export default function Show({ auth, orderNumber, patient, orderedBy, hospital, doctor, orderedAt, notes, orders, summary }: PageProps<{
+export default function Show({ auth, orderNumber, patient, orderedBy, hospital, doctor, orderedAt, notes, orders, summary, sensitivities }: PageProps<{
     orderNumber: string;
     patient: Patient;
     orderedBy: User;
@@ -130,7 +133,10 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
     notes: string | null;
     orders: TestOrder[];
     summary: Summary;
+    sensitivities: any[];
 }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const [resultModalOrder, setResultModalOrder] = useState<TestOrder | null>(null);
     const [adjustUnitVisible, setAdjustUnitVisible] = useState<Record<string, boolean>>({});
     const [adjustRangeVisible, setAdjustRangeVisible] = useState<Record<string, boolean>>({});
@@ -143,6 +149,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
         notes: '',
         interpretation: '', // Only 'high' or 'low'
         subtest_results: {} as Record<string, any>,
+        sensitivities: [] as any[],
     });
 
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -226,57 +233,21 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
         };
 
         const finalSubResults: any = {};
+        
+        // 1. Order tests using the array sequence of definitions to prevent integer key sorting 
         if (subtestSelections && subtestSelections.length > 0) {
-            const defKeySet = new Set(subtestSelections.map(id => String(id)));
-            const groups: Record<string, string[]> = {};
-            const orphanExtras: string[] = [];
-            let currentDefKey: string | null = null;
-            const originalKeys = Object.keys(existingSubResults);
-
-            for (const key of originalKeys) {
-                if (defKeySet.has(key)) {
-                    currentDefKey = key;
-                    if (!groups[currentDefKey]) groups[currentDefKey] = [];
-                    groups[currentDefKey].push(key);
-                } else {
-                    if (currentDefKey !== null) {
-                        if (!groups[currentDefKey]) groups[currentDefKey] = [];
-                        groups[currentDefKey].push(key);
-                    } else {
-                        orphanExtras.push(key);
-                    }
-                }
-            }
-
-            // 1. Orphan extras first
-            orphanExtras.forEach(key => {
-                finalSubResults[key] = buildEntry(key, false);
-            });
-
-            // 2. Definitions followed by their extras
             subtestSelections.forEach((defKey: string) => {
                 const key = String(defKey);
-                if (groups[key]) {
-                    groups[key].forEach(subKey => {
-                        finalSubResults[subKey] = buildEntry(subKey, subKey === key);
-                    });
-                } else {
-                    finalSubResults[key] = buildEntry(key, true);
-                }
-            });
-
-            // 3. Ensure any missed existing results are included
-            Object.keys(existingSubResults).forEach(key => {
-                if (!finalSubResults[key]) {
-                    finalSubResults[key] = buildEntry(key, false);
-                }
-            });
-        } else {
-            // No definitions, just load all existing results
-            Object.keys(existingSubResults).forEach(key => {
-                finalSubResults[key] = buildEntry(key, false);
+                finalSubResults[key] = buildEntry(key, !existingSubResults[key]);
             });
         }
+
+        // 2. Append any custom/orphan entries not in definitions
+        Object.keys(existingSubResults).forEach(key => {
+            if (!finalSubResults[key]) {
+                finalSubResults[key] = buildEntry(key, false);
+            }
+        });
 
         let mainRef = order.result?.reference_range || order.test.reference_range || '';
 
@@ -300,6 +271,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
             notes: order.result?.notes || '',
             interpretation: currentInterpretation,
             subtest_results: finalSubResults,
+            sensitivities: order.result?.sensitivities || [],
         });
     };
 
@@ -325,34 +297,28 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
     };
 
     const addSubtestRow = (id: string, name: string) => {
-        const newId = `extra-${Date.now()}`;
         const newEntry = {
-            name: name,
             value: '',
             units: data.subtest_results[id]?.units || '',
             reference_range: data.subtest_results[id]?.reference_range || '',
             is_abnormal: false,
             interpretation: 'normal',
-            is_custom: true
         };
 
-        const updated: Record<string, any> = {};
-        let foundLastId = id;
+        const updated = { ...data.subtest_results };
+        if (!updated[id].child_results) {
+            updated[id].child_results = [];
+        }
+        updated[id].child_results.push(newEntry);
 
-        // Find the last item with the same name that comes after the clicked row
-        Object.entries(data.subtest_results).forEach(([subId, res]: [string, any]) => {
-            if (res.name === name) {
-                foundLastId = subId;
-            }
-        });
+        setData('subtest_results', updated);
+    };
 
-        Object.entries(data.subtest_results).forEach(([subId, res]) => {
-            updated[subId] = res;
-            if (subId === foundLastId) {
-                updated[newId] = newEntry;
-            }
-        });
-
+    const removeChildResult = (parentId: string, childIndex: number) => {
+        const updated = { ...data.subtest_results };
+        if (updated[parentId]?.child_results) {
+            updated[parentId].child_results.splice(childIndex, 1);
+        }
         setData('subtest_results', updated);
     };
 
@@ -390,10 +356,30 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                     subtestIsAbnormal = true;
                 }
 
+                let processedChildResults = [];
+                if (res.child_results && Array.isArray(res.child_results)) {
+                    processedChildResults = res.child_results.map((child: any) => {
+                        let childVal = child.value;
+                        if (child.interpretation === 'high') {
+                            childVal = `${child.value} (High)`;
+                            subtestIsAbnormal = true;
+                        } else if (child.interpretation === 'low') {
+                            childVal = `${child.value} (Low)`;
+                            subtestIsAbnormal = true;
+                        }
+                        return {
+                            ...child,
+                            value: childVal,
+                            is_abnormal: child.is_abnormal || (child.interpretation !== '' && child.interpretation !== 'normal')
+                        };
+                    });
+                }
+
                 processedSubtestResults[id] = {
                     ...res,
                     value: val,
-                    is_abnormal: res.is_abnormal || (res.interpretation !== ''),
+                    is_abnormal: res.is_abnormal || (res.interpretation !== '' && res.interpretation !== 'normal'),
+                    child_results: processedChildResults.length > 0 ? processedChildResults : undefined
                 };
             });
 
@@ -413,6 +399,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
             notes: data.notes,
             interpretation: data.interpretation,
             subtest_results: processedSubtestResults,
+            sensitivities: data.sensitivities,
         }, {
             preserveScroll: true,
             onSuccess: () => {
@@ -446,12 +433,12 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
     };
 
     const updateAllStatus = (status: string) => {
-        router.patch(route('test-orders.update-batch-status', orderNumber.replace('/', '-')), { status }, { preserveScroll: true });
+        router.patch(route('test-orders.update-batch-status', orderNumber), { status }, { preserveScroll: true });
     };
 
     const submitPayment = (e: FormEvent) => {
         e.preventDefault();
-        paymentForm.post(route('payments.store'), {
+        paymentForm.post(route('payments.store-batch'), {
             onSuccess: () => {
                 setShowPaymentModal(false);
                 paymentForm.reset();
@@ -478,8 +465,23 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                             Back to Orders
                         </Link>
                         <div className="flex gap-2">
+                            <a
+                                href={route('test-orders.invoice-view', orderNumber)}
+                                target="_blank"
+                                className="inline-flex items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-900 focus:outline-none focus:border-emerald-900 focus:ring ring-emerald-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-sm"
+                            >
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print Invoice
+                            </a>
+                            <a
+                                href={route('test-orders.invoice', orderNumber)}
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-sm"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Download PDF
+                            </a>
                             <Link
-                                href={route('test-orders.edit-batch', orderNumber.replace('/', '-'))}
+                                href={route('test-orders.edit-batch', orderNumber)}
                                 className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-sm"
                             >
                                 <Edit className="h-4 w-4 mr-2" />
@@ -552,11 +554,10 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <div className="text-right">
-                                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                                            ₦{parseFloat(order.price).toLocaleString()}
+                                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{currency}{parseFloat(order.price).toLocaleString()}
                                                         </p>
                                                         {parseFloat(order.discount) > 0 && (
-                                                            <p className="text-[10px] text-green-600">-₦{parseFloat(order.discount).toLocaleString()}</p>
+                                                            <p className="text-[10px] text-green-600">-{currency}{parseFloat(order.discount).toLocaleString()}</p>
                                                         )}
                                                     </div>
                                                     <select
@@ -630,8 +631,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-gray-500">Subtotal:</span>
-                                        <span className="font-bold text-gray-900 dark:text-gray-100">
-                                            ₦{summary.totalPrice.toLocaleString()}
+                                        <span className="font-bold text-gray-900 dark:text-gray-100">{currency}{summary.totalPrice.toLocaleString()}
                                         </span>
                                     </div>
                                     {summary.totalDiscount > 0 && (
@@ -640,15 +640,13 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                 <Percent className="h-3 w-3 mr-1" />
                                                 Discount:
                                             </span>
-                                            <span className="font-bold text-green-600">
-                                                -₦{summary.totalDiscount.toLocaleString()}
+                                            <span className="font-bold text-green-600">-{currency}{summary.totalDiscount.toLocaleString()}
                                             </span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center text-sm border-t pt-2 dark:border-gray-700">
                                         <span className="text-gray-700 dark:text-gray-300 font-bold">Total Payable:</span>
-                                        <span className="font-black text-indigo-600 dark:text-indigo-400">
-                                            ₦{(summary.totalPrice - summary.totalDiscount).toLocaleString()}
+                                        <span className="font-black text-indigo-600 dark:text-indigo-400">{currency}{(summary.totalPrice - summary.totalDiscount).toLocaleString()}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
@@ -657,7 +655,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                             Amount Paid:
                                         </span>
                                         <span className="font-bold text-green-600">
-                                            ₦{summary.totalPaid.toLocaleString()}
+                                            {currency}{summary.totalPaid.toLocaleString()}
                                         </span>
                                     </div>
 
@@ -666,7 +664,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                         : 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800 text-green-800 dark:text-green-400'
                                         }`}>
                                         <span className="text-xs font-bold uppercase">Balance:</span>
-                                        <span className="font-black text-lg">₦{summary.balance.toLocaleString()}</span>
+                                        <span className="font-black text-lg">{currency}{summary.balance.toLocaleString()}</span>
                                     </div>
                                 </div>
 
@@ -897,6 +895,52 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                         ))}
                                                     </div>
                                                 </div>
+                                                {res.child_results && res.child_results.map((child: any, childIndex: number) => (
+                                                    <div key={`${subId}-child-${childIndex}`} className="flex gap-4 pl-8 mt-2 relative">
+                                                        <div className="absolute left-4 top-1/2 w-3 h-px bg-gray-300 dark:bg-gray-600"></div>
+                                                        <div className="absolute left-4 top-0 bottom-1/2 w-px bg-gray-300 dark:bg-gray-600"></div>
+                                                        <div className="flex-1">
+                                                            <TextInput
+                                                                className="w-full h-8 text-sm"
+                                                                value={child.value || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = { ...data.subtest_results };
+                                                                    updated[subId].child_results[childIndex].value = e.target.value;
+                                                                    setData('subtest_results', updated);
+                                                                }}
+                                                                placeholder="Enter additional result..."
+                                                            />
+                                                        </div>
+                                                        <div className="flex gap-1 items-center">
+                                                            {['Normal', 'High', 'Low'].map((opt) => (
+                                                                <button
+                                                                    key={opt}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        const updated = { ...data.subtest_results };
+                                                                        updated[subId].child_results[childIndex].interpretation = opt.toLowerCase();
+                                                                        updated[subId].child_results[childIndex].is_abnormal = opt.toLowerCase() !== 'normal';
+                                                                        setData('subtest_results', updated);
+                                                                    }}
+                                                                    className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${child.interpretation === opt.toLowerCase()
+                                                                        ? (opt === 'Normal' ? 'bg-green-600 border-green-600 text-white' : 'bg-red-600 border-red-600 text-white')
+                                                                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                                        }`}
+                                                                >
+                                                                    {opt[0]}
+                                                                </button>
+                                                            ))}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeChildResult(subId, childIndex)}
+                                                                className="ml-2 text-red-500 hover:text-red-700"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         );
                                     });
@@ -935,6 +979,85 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                 />
                             </div>
 
+                            {/* Sensitivity Selection */}
+                            {resultModalOrder?.test?.has_sensitivity && (
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Activity className="h-4 w-4 text-indigo-500" />
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sensitivities</h4>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {sensitivities && sensitivities.length > 0 ? (
+                                            sensitivities.map((s: any) => {
+                                                const isSelected = data.sensitivities.some((selected: any) => selected.id === s.id);
+                                                const formatValue = (sen: any) => {
+                                                    if (!sen.value) return '[---]';
+                                                    if (sen.type === 'number') {
+                                                        const count = parseInt(sen.value) || 0;
+                                                        return `[${'+'.repeat(count)}]`;
+                                                    }
+                                                    return `[${sen.value}]`;
+                                                };
+                                                
+                                                return (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setData('sensitivities', data.sensitivities.filter((selected: any) => selected.id !== s.id));
+                                                            } else {
+                                                                setData('sensitivities', [...data.sensitivities, { ...s }]);
+                                                            }
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-full text-[10px] font-black border transition-all flex items-center gap-2 ${
+                                                            isSelected 
+                                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-105' 
+                                                            : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-400'
+                                                        }`}
+                                                    >
+                                                        {s.name} <span className={isSelected ? 'text-indigo-100' : 'text-indigo-500'}>{formatValue(s)}</span>
+                                                    </button>
+                                                );
+                                            })
+                                        ) : (
+                                            <p className="text-[10px] text-gray-400 italic">No sensitivities configured in settings.</p>
+                                        )}
+                                    </div>
+
+                                    {data.sensitivities.length > 0 && (
+                                        <div className="mt-4 space-y-3 border-t dark:border-gray-700 pt-4">
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase">Enter Values for Selected Sensitivities:</span>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {data.sensitivities.map((s: any, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900/50 rounded-md border dark:border-gray-700">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300 truncate">{s.name}</p>
+                                                        </div>
+                                                        <TextInput
+                                                            className="h-8 w-24 text-[10px]"
+                                                            placeholder={s.type === 'number' ? "# of +" : "Value"}
+                                                            value={s.value || ''}
+                                                            onChange={(e) => {
+                                                                const updated = [...data.sensitivities];
+                                                                updated[idx].value = e.target.value;
+                                                                setData('sensitivities', updated);
+                                                            }}
+                                                            type={s.type === 'number' ? 'number' : 'text'}
+                                                        />
+                                                        <div className="w-12 text-center">
+                                                            <span className="text-[10px] font-mono font-black text-indigo-600 dark:text-indigo-400">
+                                                                {s.type === 'number' ? `[${'+'.repeat(parseInt(s.value) || 0)}]` : `[${s.value || '---'}]`}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-2 pt-2">
                                 <SecondaryButton onClick={closeResultModal}>Cancel</SecondaryButton>
                                 <PrimaryButton disabled={processing}>Save Result</PrimaryButton>
@@ -958,6 +1081,24 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                 onChange={(e) => paymentForm.setData('amount_paid', e.target.value as any)}
                                 required
                             />
+                            <InputError message={paymentForm.errors.amount_paid} className="mt-2" />
+                        </div>
+                        
+                        <div>
+                            <InputLabel htmlFor="payment_method" value="Payment Method" />
+                            <select
+                                id="payment_method"
+                                className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                value={paymentForm.data.payment_method}
+                                onChange={(e) => paymentForm.setData('payment_method', e.target.value)}
+                                required
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="POS">POS/Bank Transfer</option>
+                                <option value="Online">Online Payment</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                            <InputError message={paymentForm.errors.payment_method} className="mt-2" />
                         </div>
                         <div className="flex justify-end gap-2">
                             <SecondaryButton onClick={() => setShowPaymentModal(false)}>Cancel</SecondaryButton>

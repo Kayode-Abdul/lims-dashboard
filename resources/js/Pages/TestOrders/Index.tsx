@@ -70,6 +70,8 @@ export default function Index({ auth, orders, filters }: PageProps<{
     orders: PaginatedOrders;
     filters: { search?: string; status?: string };
 }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
 
     const handleSearch = (e: React.FormEvent) => {
@@ -83,7 +85,7 @@ export default function Index({ auth, orders, filters }: PageProps<{
 
     const deleteOrder = (orderNumber: string) => {
         if (confirm('Delete all tests in this order? This cannot be undone.')) {
-            router.delete(route('test-orders.destroy-batch', orderNumber.replace(/\//g, '-')), {
+            router.delete(route('test-orders.destroy-batch', orderNumber), {
                 onSuccess: () => {
                     // Success handling is usually via Inertia redirection/flash
                 }
@@ -195,7 +197,7 @@ export default function Index({ auth, orders, filters }: PageProps<{
                                         <tr key={order.order_number} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <Link href={route('test-orders.show-batch', order.order_number.replace('/', '-'))}>
+                                                    <Link href={route('test-orders.show-batch', order.order_number)}>
                                                         <span className="font-bold text-indigo-600 dark:text-indigo-400 font-mono text-sm hover:underline cursor-pointer">
                                                             {order.order_number}
                                                         </span>
@@ -249,10 +251,9 @@ export default function Index({ auth, orders, filters }: PageProps<{
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-1">
                                                     <div className="text-xs text-gray-900 dark:text-gray-100">
-                                                        <span className="font-bold">₦{parseFloat(order.total_price || '0').toLocaleString()}</span>
+                                                        <span className="font-bold">{currency}{parseFloat(order.total_price || '0').toLocaleString()}</span>
                                                         {parseFloat(order.total_discount || '0') > 0 && (
-                                                            <span className="ml-1 text-green-600 text-[10px]">
-                                                                (-₦{parseFloat(order.total_discount || '0').toLocaleString()})
+                                                            <span className="ml-1 text-green-600 text-[10px]">(-{currency}{parseFloat(order.total_discount || '0').toLocaleString()})
                                                             </span>
                                                         )}
                                                     </div>
@@ -262,7 +263,7 @@ export default function Index({ auth, orders, filters }: PageProps<{
                                                         </span>
                                                         {(order.balance ?? 0) > 0 && (
                                                             <span className="text-[9px] font-bold text-red-500">
-                                                                Bal: ₦{(order.balance ?? 0).toLocaleString()}
+                                                                Bal: {currency}{(order.balance ?? 0).toLocaleString()}
                                                             </span>
                                                         )}
                                                     </div>
@@ -277,14 +278,14 @@ export default function Index({ auth, orders, filters }: PageProps<{
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Link
-                                                        href={route('test-orders.show-batch', order.order_number.replace(/\//g, '-'))}
+                                                        href={route('test-orders.show-batch', order.order_number)}
                                                         className="p-1.5 rounded hover:bg-white dark:hover:bg-gray-700 text-gray-400 hover:text-indigo-600"
                                                         title="View Details"
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Link>
                                                     <Link
-                                                        href={route('test-orders.edit-batch', order.order_number.replace(/\//g, '-'))}
+                                                        href={route('test-orders.edit-batch', order.order_number)}
                                                         className="p-1.5 rounded hover:bg-white dark:hover:bg-gray-700 text-gray-400 hover:text-amber-500"
                                                         title="Edit Order"
                                                     >

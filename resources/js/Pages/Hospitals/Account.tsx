@@ -69,7 +69,8 @@ interface Props extends PageProps {
     };
 }
 
-export default function Account({ hospital, stats, transactions, doctors, filters }: Props) {
+export default function Account({ auth, hospital, stats, transactions, doctors, filters }: Props) {
+    const currency = auth?.user?.lab?.currency || '₦';
     const [startDate, setStartDate] = useState(filters.start_date || '');
     const [endDate, setEndDate] = useState(filters.end_date || '');
     const [doctorId, setDoctorId] = useState(filters.doctor_id || '');
@@ -157,8 +158,7 @@ export default function Account({ hospital, stats, transactions, doctors, filter
                                     <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">Total Billed</span>
                                     <TrendingUp className="h-6 w-6 text-emerald-500" />
                                 </div>
-                                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
-                                    ₦{Number(stats.total_billed).toLocaleString()}
+                                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{currency}{Number(stats.total_billed).toLocaleString()}
                                 </div>
                             </div>
 
@@ -167,8 +167,7 @@ export default function Account({ hospital, stats, transactions, doctors, filter
                                     <span className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">Total Paid</span>
                                     <ArrowUpCircle className="h-6 w-6 text-blue-500" />
                                 </div>
-                                <div className="text-2xl font-black text-blue-700 dark:text-blue-300">
-                                    ₦{Number(stats.total_paid).toLocaleString()}
+                                <div className="text-2xl font-black text-blue-700 dark:text-blue-300">{currency}{Number(stats.total_paid).toLocaleString()}
                                 </div>
                             </div>
 
@@ -177,8 +176,7 @@ export default function Account({ hospital, stats, transactions, doctors, filter
                                     <span className="text-rose-600 dark:text-rose-400 text-xs font-bold uppercase tracking-wider">Outstanding</span>
                                     <DollarSign className="h-6 w-6 text-rose-500" />
                                 </div>
-                                <div className="text-2xl font-black text-rose-700 dark:text-rose-300">
-                                    ₦{Number(stats.outstanding).toLocaleString()}
+                                <div className="text-2xl font-black text-rose-700 dark:text-rose-300">{currency}{Number(stats.outstanding).toLocaleString()}
                                 </div>
                             </div>
                         </div>
@@ -199,9 +197,9 @@ export default function Account({ hospital, stats, transactions, doctors, filter
                                         <th className="py-4 px-6">Order #</th>
                                         <th className="py-4 px-6">Patient</th>
                                         <th className="py-4 px-6">Doctor</th>
-                                        <th className="py-4 px-6 text-right">Billed (₦)</th>
-                                        <th className="py-4 px-6 text-right">Paid (₦)</th>
-                                        <th className="py-4 px-6 text-right">Balance (₦)</th>
+                                        <th className="py-4 px-6 text-right">Billed ({currency})</th>
+                                        <th className="py-4 px-6 text-right">Paid ({currency})</th>
+                                        <th className="py-4 px-6 text-right">Balance ({currency})</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y dark:divide-gray-700 text-sm">

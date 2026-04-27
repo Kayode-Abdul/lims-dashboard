@@ -31,6 +31,7 @@ interface Test {
     is_active: boolean;
     is_group?: boolean;
     has_subtests?: boolean;
+    has_sensitivity?: boolean;
     subtest_definitions?: Array<{
         id: string;
         name: string;
@@ -111,6 +112,8 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
     allTests: GroupTest[],
     filters: { search?: string, category?: string }
 }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const { data, setData, post, patch, processing, errors, reset, clearErrors } = useForm({
         id: null as number | null,
         test_code: '',
@@ -131,6 +134,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
         is_active: true,
         is_group: false,
         has_subtests: false,
+        has_sensitivity: false,
         subtest_definitions: [{
             id: Math.random().toString(36).substr(2, 9),
             name: '',
@@ -251,6 +255,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
             }, {} as Record<number, string | number>),
             is_group: test.is_group || false,
             has_subtests: test.has_subtests || false,
+            has_sensitivity: test.has_sensitivity || false,
             subtest_definitions: (test.subtest_definitions || [{
                 id: Math.random().toString(36).substr(2, 9),
                 name: '',
@@ -468,16 +473,24 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                         </div>
                                     </div>
 
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id="has_subtests"
+                                                checked={data.has_subtests}
+                                                onChange={(e) => setData('has_subtests', e.target.checked)}
+                                            />
+                                            <InputLabel htmlFor="has_subtests" value="Has Subtests" />
+                                        </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id="has_subtests"
-                                            checked={data.has_subtests}
-                                            onChange={(e) => {
-                                                setData('has_subtests', e.target.checked);
-                                            }}
-                                        />
-                                        <InputLabel htmlFor="has_subtests" value="Enable Subtest Definitions" />
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id="has_sensitivity"
+                                                checked={data.has_sensitivity}
+                                                onChange={(e) => setData('has_sensitivity', e.target.checked)}
+                                            />
+                                            <InputLabel htmlFor="has_sensitivity" value="Requires Sensitivity" />
+                                        </div>
                                     </div>
 
                                     {data.has_subtests && (
@@ -677,7 +690,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                     <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
                                         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
                                             <DollarSign className="h-4 w-4 mr-1 text-green-500" />
-                                            Pricing Tiers (₦)
+                                            Pricing Tiers ({currency})
                                         </h4>
                                         <div className="grid grid-cols-1 gap-4">
                                             <div>
@@ -803,7 +816,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                                                         newPrices[hmo.id] = e.target.value;
                                                                         setData('hmo_prices', newPrices);
                                                                     }}
-                                                                    placeholder="₦ 0.00"
+                                                                    placeholder={`${currency} 0.00`}
                                                                 />
                                                             </div>
                                                         </div>
@@ -852,7 +865,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                                                         newPrices[hospital.id] = e.target.value;
                                                                         setData('hospital_prices', newPrices);
                                                                     }}
-                                                                    placeholder="₦ 0.00"
+                                                                    placeholder={`${currency} 0.00`}
                                                                 />
                                                             </div>
                                                         </div>
@@ -992,15 +1005,15 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                                         <div className="space-y-1">
                                                             <div className="flex items-center text-xs justify-between w-32 border-b dark:border-gray-700 pb-1">
                                                                 <span className="text-gray-500">Walk-in:</span>
-                                                                <span className="font-bold text-gray-900 dark:text-gray-100">₦{Number(test.price_walk_in).toLocaleString()}</span>
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100">{currency}{Number(test.price_walk_in).toLocaleString()}</span>
                                                             </div>
                                                             <div className="flex items-center text-xs justify-between w-32 border-b dark:border-gray-700 pb-1">
                                                                 <span className="text-gray-500">HMO:</span>
-                                                                <span className="font-bold text-gray-900 dark:text-gray-100">₦{Number(test.price_hmo).toLocaleString()}</span>
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100">{currency}{Number(test.price_hmo).toLocaleString()}</span>
                                                             </div>
                                                             <div className="flex items-center text-xs justify-between w-32">
                                                                 <span className="text-gray-500">Ref:</span>
-                                                                <span className="font-bold text-gray-900 dark:text-gray-100">₦{Number(test.price_doctor_referred).toLocaleString()}</span>
+                                                                <span className="font-bold text-gray-900 dark:text-gray-100">{currency}{Number(test.price_doctor_referred).toLocaleString()}</span>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center text-[10px] text-gray-500 mt-2">
@@ -1096,7 +1109,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                         <div key={price.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
                                             <div>
                                                 <div className="text-sm font-bold">{price.hmo?.name}</div>
-                                                <div className="text-xs text-green-600 dark:text-green-400 font-mono">₦{parseFloat(price.price).toLocaleString()}</div>
+                                                <div className="text-xs text-green-600 dark:text-green-400 font-mono">{currency}{parseFloat(price.price).toLocaleString()}</div>
                                             </div>
                                             <button onClick={() => handleDeleteHmoPrice(price.id)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition-colors">
                                                 <X className="h-4 w-4" />
@@ -1129,7 +1142,7 @@ export default function Index({ auth, tests, categories, hmos, hospitals, groupT
                                     </select>
                                 </div>
                                 <div>
-                                    <InputLabel htmlFor="hmo_price" value="Price (₦)" />
+                                    <InputLabel htmlFor="hmo_price" value="Price ({currency})" />
                                     <TextInput
                                         id="hmo_price"
                                         type="number"

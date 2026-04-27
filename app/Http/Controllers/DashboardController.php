@@ -13,57 +13,98 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $user = auth()->user();
+        $canViewStats = $user->is_super_admin || 
+                        in_array($user->role, ['admin', 'lab_admin']) || 
+                        ($user->permissions && (
+                            in_array('audit.view', $user->permissions) || 
+                            in_array('accounting.view', $user->permissions) ||
+                            in_array('View System Audit Logs', $user->permissions) ||
+                            in_array('View Financial Reports', $user->permissions)
+                        ));
+
+        $startDate = $request->get('start_date', Carbon::today()->toDateString());
+        $endDate = $request->get('end_date', Carbon::today()->toDateString());
+
         $now = Carbon::now();
-        $startOfMonth = $now->copy()->startOfMonth();
-        $prevMonth = $now->copy()->subMonth()->startOfMonth();
-        $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
+        
+        // Stats in range
+        $rangeOrders = TestOrder::whereBetween('ordered_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        $totalOrdersInRange = $rangeOrders->count();
+        $totalRevenueInRange = $canViewStats ? $rangeOrders->sum('price') : 0;
 
-        // Revenue Stats
-        $currentMonthRevenue = TestOrder::whereBetween('ordered_at', [$startOfMonth, $now])->sum('price');
-        $prevMonthRevenue = TestOrder::whereBetween('ordered_at', [$prevMonth, $prevMonthEnd])->sum('price');
-        $revenueGrowth = $prevMonthRevenue > 0
-            ? (($currentMonthRevenue - $prevMonthRevenue) / $prevMonthRevenue) * 100
-            : 100;
+        // Comparison (Previous Period of same duration)
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $days = $start->diffInDays($end) + 1;
+        
+        $prevStart = $start->copy()->subDays($days);
+        $prevEnd = $end->copy()->subDays($days);
 
-        // Orders Stats
-        $currentMonthOrders = TestOrder::whereBetween('ordered_at', [$startOfMonth, $now])->count();
-        $prevMonthOrders = TestOrder::whereBetween('ordered_at', [$prevMonth, $prevMonthEnd])->count();
-        $ordersGrowth = $prevMonthOrders > 0
-            ? (($currentMonthOrders - $prevMonthOrders) / $prevMonthOrders) * 100
-            : 100;
+        $prevRangeOrders = TestOrder::whereBetween('ordered_at', [$prevStart . ' 00:00:00', $prevEnd . ' 23:59:59']);
+        $prevOrdersCount = $prevRangeOrders->count();
+        $prevRevenueSum = $canViewStats ? $prevRangeOrders->sum('price') : 0;
 
-        // Monthly trends (Last 6 months)
+        $revenueGrowth = $prevRevenueSum > 0
+            ? (($totalRevenueInRange - $prevRevenueSum) / $prevRevenueSum) * 100
+            : ($totalRevenueInRange > 0 ? 100 : 0);
+
+        $ordersGrowth = $prevOrdersCount > 0
+            ? (($totalOrdersInRange - $prevOrdersCount) / $prevOrdersCount) * 100
+            : ($totalOrdersInRange > 0 ? 100 : 0);
+
+        // Daily trends (Always last 7 days regardless of filter for visual consistency, or should it follow filter?)
+        // Let's make it follow filter if range is <= 31 days, otherwise keep last 7 days?
+        // User asked for "date range will handle that" for full details. 
+        // Let's make trends follow range if range is small enough.
+        
         $trends = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = $now->copy()->subMonths($i);
+        $trendStart = $start;
+        $trendEnd = $end;
+        
+        // If range is > 14 days, just show last 14 days in trend for readability
+        if ($days > 14) {
+            $trendStart = $end->copy()->subDays(13);
+        }
+
+        for ($date = $trendStart->copy(); $date->lte($trendEnd); $date->addDay()) {
             $trends[] = [
-                'month' => $month->format('M'),
-                'revenue' => TestOrder::whereMonth('ordered_at', $month->month)
-                    ->whereYear('ordered_at', $month->year)
-                    ->sum('price'),
-                'orders' => TestOrder::whereMonth('ordered_at', $month->month)
-                    ->whereYear('ordered_at', $month->year)
-                    ->count(),
+                'label' => $date->format('D'),
+                'date' => $date->format('M d'),
+                'revenue' => $canViewStats ? TestOrder::whereDate('ordered_at', $date->toDateString())->sum('price') : 0,
+                'orders' => TestOrder::whereDate('ordered_at', $date->toDateString())->count(),
             ];
         }
 
         $stats = [
-            'total_patients' => Patient::count(),
+            'total_patients' => Patient::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->count(),
             'total_tests' => Test::count(),
-            'total_revenue' => TestOrder::sum('price'),
-            'current_month_revenue' => $currentMonthRevenue,
+            'total_revenue' => $canViewStats ? TestOrder::sum('price') : 0,
+            'current_day_revenue' => $totalRevenueInRange,
             'revenue_growth' => round($revenueGrowth, 1),
-            'current_month_orders' => $currentMonthOrders,
+            'current_day_orders' => $totalOrdersInRange,
             'orders_growth' => round($ordersGrowth, 1),
-            'pending_results' => TestOrder::where('status', 'pending')->count(),
+            'pending_results' => TestOrder::where('status', 'pending')
+                ->whereBetween('ordered_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->count(),
             'recent_orders' => TestOrder::has('patient')->with(['patient'])->latest('ordered_at')->take(5)->get(),
-            'trends' => $trends
+            'trends' => $trends,
+            'can_view_stats' => $canViewStats,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ]
         ];
 
         return Inertia::render('Dashboard', [
             'stats' => $stats,
+            'tests' => Test::where('is_active', true)
+                ->with(['hmoPrices', 'hospitalPrices'])
+                ->get(['id', 'test_name', 'test_code', 'price_walk_in', 'price_hmo', 'price_doctor_referred']),
+            'hmos' => \App\Models\Hmo::where('is_active', true)->get(['id', 'name']),
+            'hospitals' => \App\Models\Hospital::where('is_active', true)->get(['id', 'name']),
         ]);
     }
 }

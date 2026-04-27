@@ -43,6 +43,8 @@ interface TestOrder {
 }
 
 export default function Show({ auth, patient, orders }: PageProps<{ patient: Patient, orders: TestOrder[] }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
@@ -259,11 +261,10 @@ export default function Show({ auth, patient, orders }: PageProps<{ patient: Pat
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                            <div className="font-bold text-gray-900 dark:text-gray-100">
-                                                                ₦{(parseFloat(order.total_price) - parseFloat(order.total_discount)).toLocaleString()}
+                                                            <div className="font-bold text-gray-900 dark:text-gray-100">{currency}{(parseFloat(order.total_price) - parseFloat(order.total_discount)).toLocaleString()}
                                                             </div>
                                                             {order.balance > 0 && (
-                                                                <div className="text-[10px] text-red-500 font-bold">Bal: ₦{order.balance.toLocaleString()}</div>
+                                                                <div className="text-[10px] text-red-500 font-bold">Bal: {currency}{order.balance.toLocaleString()}</div>
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -273,7 +274,7 @@ export default function Show({ auth, patient, orders }: PageProps<{ patient: Pat
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                             <Link
-                                                                href={route('test-orders.show-batch', order.order_number.replace('/', '-'))}
+                                                                href={route('test-orders.show-batch', order.order_number)}
                                                                 className="text-gray-400 hover:text-indigo-600"
                                                             >
                                                                 <Eye className="h-4 w-4" />

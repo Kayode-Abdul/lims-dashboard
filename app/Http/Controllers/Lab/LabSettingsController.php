@@ -48,6 +48,9 @@ class LabSettingsController extends Controller
             'phone' => 'nullable|string',
             'address' => 'nullable|string',
             'sync_url' => 'nullable|url|max:255',
+            'currency' => 'nullable|string|max:10',
+            'pdf_margin_top' => 'nullable|numeric|min:0|max:10',
+            'web_margin_top' => 'nullable|numeric|min:0|max:10',
             'header_image' => 'nullable|image|max:2048', // 2MB Max
             'footer_image' => 'nullable|image|max:2048', // 2MB Max
         ]);

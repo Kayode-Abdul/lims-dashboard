@@ -78,6 +78,8 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
     hmos: Hmo[];
     classifications: { id: number; name: string }[];
 }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const [patients, setPatients] = useState<Patient[]>(initialPatients);
     const [showPatientModal, setShowPatientModal] = useState(false);
     const [creatingPatient, setCreatingPatient] = useState(false);
@@ -200,7 +202,7 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
                         }
                         break;
                     case 'referred':
-                        const specificHospitalPrice = test.hospital_prices?.find(p => p.hospital_id.toString() === data.hospital_id.toString());
+                        const specificHospitalPrice = test.hospital_prices?.find(p => p.hospital_id?.toString() === data.hospital_id?.toString());
                         if (specificHospitalPrice) {
                             price = parseFloat(specificHospitalPrice.price);
                         } else {
@@ -227,7 +229,19 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
     const addTest = () => {
         if (!selectedTestId) return;
         const testToAdd = tests.find(t => t.id === parseInt(selectedTestId));
-        if (testToAdd && !selectedTests.find(t => t.id === testToAdd.id)) {
+        
+        if (testToAdd) {
+            // Duplicate check
+            const alreadySelected = selectedTests.find(t => t.id === testToAdd.id);
+            if (alreadySelected) {
+                if ((window as any).toast) {
+                    (window as any).toast.error(`${testToAdd.test_name} is already in your selection.`);
+                }
+                setSelectedTestId('');
+                setTestInput('');
+                return;
+            }
+
             if (testToAdd.has_subtests && testToAdd.subtest_definitions && testToAdd.subtest_definitions.length > 0) {
                 setConfiguringTest(testToAdd);
                 setTempSelectedSubtests(testToAdd.subtest_definitions.map((s: any) => s.id));
@@ -647,12 +661,12 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-gray-500">Subtotal:</span>
                                         <span className="font-bold text-gray-900 dark:text-gray-100">
-                                            ₦{parseFloat(data.price).toLocaleString()}
+                                            {currency}{parseFloat(data.price).toLocaleString()}
                                         </span>
                                     </div>
 
                                     <div>
-                                        <InputLabel htmlFor="discount" value={`Discount (${data.discount_type === 'percentage' ? '%' : '₦'})`} />
+                                        <InputLabel htmlFor="discount" value={`Discount (${data.discount_type === 'percentage' ? '%' : currency})`} />
                                         <div className="mt-1 flex gap-2">
                                             <div className="relative flex-1">
                                                 {data.discount_type === 'percentage' ? (
@@ -677,7 +691,7 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
                                                 value={data.discount_type}
                                                 onChange={(e) => setData('discount_type', e.target.value as 'amount' | 'percentage')}
                                             >
-                                                <option value="amount">Amount (₦)</option>
+                                                <option value="amount">Amount ({currency})</option>
                                                 <option value="percentage">Percent (%)</option>
                                             </select>
                                         </div>
@@ -686,8 +700,7 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
 
                                     <div className="flex justify-between items-center text-sm font-bold border-t pt-2 dark:border-gray-700">
                                         <span className="text-gray-700 dark:text-gray-300">Total Payable:</span>
-                                        <span className="text-indigo-600 dark:text-indigo-400">
-                                            ₦{totalPayable.toLocaleString()}
+                                        <span className="text-indigo-600 dark:text-indigo-400">{currency}{totalPayable.toLocaleString()}
                                         </span>
                                     </div>
 
@@ -730,7 +743,7 @@ export default function Create({ auth, patients: initialPatients, hospitals, doc
                                     {balanceDue > 0 && (
                                         <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded text-sm text-red-800 dark:text-red-400 flex justify-between items-center font-bold">
                                             <span>Balance Due:</span>
-                                            <span>₦{balanceDue.toLocaleString()}</span>
+                                            <span>{currency}{balanceDue.toLocaleString()}</span>
                                         </div>
                                     )}
 

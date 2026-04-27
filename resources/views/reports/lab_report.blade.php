@@ -28,14 +28,14 @@
         }
 
         .main-content {
-            margin: 42mm 15mm 45mm 15mm;
+            margin: {{ $lab->pdf_margin_top ?? 1.20 }}in 15mm 45mm 15mm;
             /* Top (Header), Right, Bottom (Footer), Left */
         }
 
         .logo {
             font-size: 24px;
             font-weight: bold;
-            color: #1a56db;
+            color: #000;
         }
 
         .report-title {
@@ -43,6 +43,7 @@
             font-weight: bold;
             margin-top: 10px;
             text-transform: uppercase;
+            color: #000;
         }
 
         .section {
@@ -52,7 +53,7 @@
         .section-title {
             font-size: 11px;
             font-weight: bold;
-            color: #4b5563;
+            color: #000;
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 5px;
             margin-bottom: 15px;
@@ -62,7 +63,7 @@
         .section-report-title {
             font-size: 11px;
             font-weight: bold;
-            color: #4b5563;
+            color: #000;
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 5px;
             margin-bottom: 5px;
@@ -78,10 +79,11 @@
 
         th,
         td {
-            padding: 5px 10px;
+            padding: 5px 0;
             text-align: left;
             font-size: 11px;
             border: none;
+            color: #000;
         }
 
         .info-grid {
@@ -92,7 +94,7 @@
         .info-item {
             display: table-cell;
             width: 50%;
-            padding: 2px 5px;
+            padding: 2px 0;
             font-size: 12px;
         }
 
@@ -119,7 +121,7 @@
             bottom: 12mm;
             left: 15mm;
             right: 15mm;
-            border-top: 1px solid #eee;
+            border-top: none;
             padding-top: 10px;
         }
 
@@ -129,7 +131,7 @@
             text-align: center;
             padding-top: 10px;
             margin-top: 0;
-            border-top: 1px solid #333;
+            border-top: 1px solid #000;
         }
 
         .barcode {
@@ -139,7 +141,7 @@
         .disclaimer {
             margin-top: 20px;
             font-style: italic;
-            color: #4b5563;
+            color: #000;
             font-size: 10px;
         }
     </style>
@@ -176,24 +178,21 @@
                     <strong>Patient Name:</strong> {{ $patient->first_name }} {{ $patient->last_name }}<br>
                     <strong>Patient ID:</strong> {{ $patient->patient_id }}<br>
                     <strong>Gender / Age:</strong> {{ ucfirst($patient->sex ?? 'N/A') }} / {{ $ageString }}<br>
-                    <strong>Phone:</strong> {{ $patient->phone ?? 'N/A' }}
-                </div>
-                <div class="info-item">
-                    <strong>Order Number:</strong> {{ $firstOrder->order_number }}<br>
+                    <strong>Phone:</strong> {{ $patient->phone ?? 'N/A' }}<br>
                     @if($firstOrder->patient_type === 'hmo')
                     <strong>HMO Name:</strong> {{ $firstOrder->hmo->name ?? 'N/A' }}<br>
-                    <strong>HMO Type:</strong> {{ $firstOrder->hmo_type ?? 'N/A' }}<br>
+                    <strong>HMO Type:</strong> {{ $firstOrder->hmo_type ?? 'N/A' }}
                     @elseif($firstOrder->patient_type === 'referred' || $firstOrder->hospital || $firstOrder->doctor)
-                    @if($firstOrder->hospital) <strong>Ref. Hospital:</strong> {{ $firstOrder->hospital->name }}<br>
-                    @endif
-                    @if($firstOrder->doctor) <strong>Ref. Dr.:</strong> {{ $firstOrder->doctor->name }}<br> @endif
+                    @if($firstOrder->hospital) <strong>Ref. Hospital:</strong> {{ $firstOrder->hospital->name }}<br> @endif
+                    @if($firstOrder->doctor) <strong>Ref. Dr.:</strong> {{ $firstOrder->doctor->name }} @endif
                     @else
-                    <strong>Patient Type:</strong> Walk-in<br>
+                    <strong>Patient Type:</strong> Walk-in
                     @endif
+                </div>
+                <div class="info-item" style="vertical-align: top;">
+                    <strong>Order Number:</strong> {{ $firstOrder->order_number }}<br>
                     <strong>Sample Type:</strong> {{ $firstOrder->sample_type ?? 'N/A' }}<br>
-                    <strong>Date Ordered:</strong> {{ \Carbon\Carbon::parse($firstOrder->ordered_at)->format('d M Y,
-                    H:i')
-                    }}<br>
+                    <strong>Date Ordered:</strong> {{ \Carbon\Carbon::parse($firstOrder->ordered_at)->format('d M Y, H:i') }}<br>
                     <strong>Report Date:</strong> {{ now()->format('d M Y, H:i') }}
                 </div>
             </div>
@@ -206,25 +205,77 @@
                     <tr>
                         <th>Test Parameter</th>
                         <th>Result</th>
-                        <th>Ref/Unit Value</th>
+                        <th style="text-align: right;">Ref Value/Unit</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($results as $result)
+                    @php $isChildTest = !empty($result->testOrder->test->parent_id); @endphp
                     <tr style="background-color: #fff; border: none;">
+                        @if($isChildTest)
+                        <td style="font-weight: 600; color: #374151; text-transform: uppercase; font-size: 10px; font-style: italic;">
+                            {{ $result->testOrder->test->test_name }}
+                        </td>
+                        @else
                         <td style="font-weight: bold; color: #1e293b; text-transform: uppercase; font-size: 11px;">
                             {{ $result->testOrder->test->test_name }}
                         </td>
+                        @endif
                         <td style="font-weight: bold;" class="{{ $result->is_abnormal ? 'abnormal' : '' }}">
                             {{ $result->result_value }}
+                            @if($result->sensitivities && count($result->sensitivities) > 0)
+                                <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #1e40af;">
+                                    @foreach($result->sensitivities as $s)
+                                        @if(isset($s['type']) && $s['type'] === 'number')
+                                            [{{ str_repeat('+', (int)$s['value'] ?: 0) }}]
+                                        @elseif(isset($s['value']))
+                                            [{{ $s['value'] }}]
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </td>
-                        <td style="font-weight: bold;">
+                        <td style="font-weight: bold; text-align: right;">
                             {{ $result->reference_range ?? '' }} {{ $result->units ?? '' }}
                         </td>
                     </tr>
                     @if($result->subtest_results && is_array($result->subtest_results))
-                    @php $lastSubName = ''; @endphp
-                    @foreach($result->subtest_results as $sub)
+                    @php 
+                    $lastSubName = ''; 
+                    $orderedSubtests = [];
+                    $subresultsObj = $result->subtest_results;
+
+                    $definitions = $result->testOrder->test->subtest_definitions ?? [];
+                    if (is_string($definitions)) $definitions = json_decode($definitions, true) ?? [];
+
+                    $selectedSubtests = $result->testOrder->selected_subtests ?? [];
+                    if (is_string($selectedSubtests)) $selectedSubtests = json_decode($selectedSubtests, true) ?? [];
+
+                    // 1. Array-based ordering
+                    if (!empty($selectedSubtests)) {
+                        foreach ($selectedSubtests as $defKey) {
+                            $key = (string)$defKey;
+                            if (isset($subresultsObj[$key])) {
+                                $orderedSubtests[$key] = $subresultsObj[$key];
+                            }
+                        }
+                    } elseif (!empty($definitions)) {
+                        foreach ($definitions as $def) {
+                            $key = (string)($def['id'] ?? $def['name'] ?? $def['investigation'] ?? '');
+                            if ($key && isset($subresultsObj[$key])) {
+                                $orderedSubtests[$key] = $subresultsObj[$key];
+                            }
+                        }
+                    }
+
+                    // 2. Append anything left over
+                    foreach ($subresultsObj as $key => $sub) {
+                        if (!isset($orderedSubtests[$key])) {
+                            $orderedSubtests[$key] = $sub;
+                        }
+                    }
+                    @endphp
+                    @foreach($orderedSubtests as $sub)
                     @php
                     $currentSubName = $sub['name'] ?? $sub['investigation'] ?? '';
                     $displaySubName = ($currentSubName === $lastSubName) ? '' : $currentSubName;
@@ -232,24 +283,38 @@
                     @endphp
                     <tr style="border: none;">
                         <td
-                            style="padding-left: 25px; font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top; border: none;">
+                            style="font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top; border: none;">
                             {{ $displaySubName }}
                         </td>
                         <td style="font-size: 10px; vertical-align: top; border: none;"
                             class="{{ ($sub['is_abnormal'] ?? false) ? 'abnormal' : '' }}">
                             {{ $sub['value'] ?? '' }}
                         </td>
-                        <td style="font-size: 10px; color: #6b7280; border: none;">
+                        <td style="font-size: 10px; color: #6b7280; border: none; text-align: right;">
                             {{ $sub['reference_range'] ?? $sub['reference_value'] ?? '' }} {{ $sub['units'] ?? '' }}
                         </td>
                     </tr>
                     @if(isset($sub['additional_ranges']) && is_array($sub['additional_ranges']))
                     @foreach($sub['additional_ranges'] as $ar)
                     <tr>
-                        <td style="padding-left: 25px;"></td>
                         <td></td>
-                        <td style="font-size: 11px; color: #6b7280;">{{ $ar['range'] ?? $ar['reference_range'] ?? '' }}
+                        <td></td>
+                        <td style="font-size: 11px; color: #6b7280; text-align: right;">{{ $ar['range'] ?? $ar['reference_range'] ?? '' }}
                             {{ $ar['units'] ?? '' }}
+                        </td>
+                    </tr>
+                    @endforeach
+                    @endif
+                    @if(isset($sub['child_results']) && is_array($sub['child_results']))
+                    @foreach($sub['child_results'] as $child)
+                    <tr style="border: none;">
+                        <td style="font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top; border: none;"></td>
+                        <td style="font-size: 10px; vertical-align: top; border: none;"
+                            class="{{ ($child['is_abnormal'] ?? false) ? 'abnormal' : '' }}">
+                            {{ $child['value'] ?? '' }}
+                        </td>
+                        <td style="font-size: 10px; color: #6b7280; border: none; text-align: right;">
+                            {{ $child['reference_range'] ?? $child['reference_value'] ?? '' }} {{ $child['units'] ?? '' }}
                         </td>
                     </tr>
                     @endforeach
@@ -313,27 +378,27 @@
                                     style="height: 100px; max-width: 250px; object-fit: contain;">
                                 @else
                                 <div
-                                    style="font-family: cursive; font-size: 16px; color: #1a56db; height: 60px; line-height: 60px;">
+                                    style="font-family: cursive; font-size: 16px; color: #000; height: 60px; line-height: 60px;">
                                     {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
                                 </div>
                                 @endif
                             </div>
 
                             <div
-                                style="text-align: center; border-top: 1px solid #1f1f37ff; padding-top: 2px;min-width: 150px;">
-                                <strong style="font-size: 8px; display: block; color: #374151;">MED. LAB.
+                                style="text-align: center; padding-top: 2px;min-width: 150px;">
+                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB.
                                     SCIENTIST.</strong>
-                                <span style="font-size: 8px; color: #1e40af;">{{ $verifiedBy->first_name }} {{
+                                <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{
                                     $verifiedBy->last_name }}</span>
                             </div>
                         </div>
                         @else
                         <div style="text-align: center; min-width: 180px; position: relative;">
 
-                            <div style="border-top: 1px solid #1f1f37ff; padding-top: 2px;">
-                                <strong style="font-size: 8px; display: block; color: #374151;">MED. LAB.
+                            <div style="padding-top: 2px;">
+                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB.
                                     SCIENTIST.</strong>
-                                <span style="font-size: 8px; color: #1e40af;"></span>
+                                <span style="font-size: 8px; color: #000;"></span>
                             </div>
                         </div>
                         @endif

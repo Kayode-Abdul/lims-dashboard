@@ -13,6 +13,7 @@ use App\Mail\ResultShared;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 
 
@@ -46,7 +47,7 @@ class TestResultController extends Controller
         $transformed = $groupedOrders->getCollection()->map(function ($order) {
             $order->results = TestResult::whereHas('testOrder', function ($q) use ($order) {
                 $q->where('order_number', $order->order_number);
-            })->with(['testOrder.test', 'verifiedBy', 'testOrder.patient'])
+            })->with(['testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.patient'])
                 ->orderBy('test_order_id', 'asc')
                 ->get();
 
@@ -63,7 +64,6 @@ class TestResultController extends Controller
                 ? $order->results->max('verified_at')
                 : null;
 
-            $order->results = $this->sortSubtests($order->results);
             return $order;
         })->filter()->values();
 
@@ -80,15 +80,13 @@ class TestResultController extends Controller
         $orderNumber = str_replace('-', '/', $orderNumber);
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
-        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
+        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
 
         if ($results->isEmpty()) {
             abort(404);
         }
 
         $firstResult = $results->first();
-
-        $results = $this->sortSubtests($results);
 
         return Inertia::render('TestResults/Show', [
             'results' => $results,
@@ -145,7 +143,7 @@ class TestResultController extends Controller
                 $result->testOrder->update(['status' => 'completed']);
             }
 
-            return redirect()->route('test-orders.index')
+            return redirect()->route('test-orders.show-batch', str_replace('/', '-', $testOrder->order_number))
                 ->with('message', 'Result recorded successfully.');
         } catch (\Exception $e) {
             Log::error("Failed to save test result: " . $e->getMessage());
@@ -170,7 +168,7 @@ class TestResultController extends Controller
         $orderNumber = str_replace('-', '/', $orderNumber);
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
-        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
+        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
 
         if ($results->isEmpty()) {
             abort(404);
@@ -182,8 +180,6 @@ class TestResultController extends Controller
         // Convert images to Base64 for PDF
         $lab->header_base64 = $this->imageToBase64($lab->header_image_path);
         $lab->footer_base64 = $this->imageToBase64($lab->footer_image_path);
-
-        $results = $this->sortSubtests($results);
         
         foreach ($results as $result) {
             if ($result->verifiedBy && $result->verifiedBy->signature_path) {
@@ -216,16 +212,18 @@ class TestResultController extends Controller
             'lab' => $lab
         ]);
 
-        $safeOrderNumber = str_replace('/', '-', $orderNumber);
-        return $pdf->download("Lab_Report_{$safeOrderNumber}.pdf");
+        $patient = $results->first()->testOrder->patient;
+        $patientName = Str::slug($patient->first_name . ' ' . $patient->last_name, '_');
+        
+        return $pdf->download("Lab_Report_{$patientName}.pdf");
     }
 
     public function generateZip(string $orderNumber)
     {
-        $orderNumber = str_replace('-', '/', $orderNumber);
-        $safeOrderNumber = str_replace('/', '-', $orderNumber);
-        $zipName = "Lab_Report_{$safeOrderNumber}.zip";
-        $pdfName = "Lab_Report_{$safeOrderNumber}.pdf";
+        $patient = TestOrder::where('order_number', $orderNumber)->first()->patient;
+        $patientName = Str::slug($patient->first_name . ' ' . $patient->last_name, '_');
+        $zipName = "Lab_Report_{$patientName}.zip";
+        $pdfName = "Lab_Report_{$patientName}.pdf";
         
         $directory = public_path('pdfs');
         if (!file_exists($directory)) {
@@ -242,15 +240,13 @@ class TestResultController extends Controller
         // Generate PDF
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
-        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
+        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
 
         if ($results->isEmpty()) abort(404);
 
         $lab = $results->first()->testOrder->lab;
         $lab->header_base64 = $this->imageToBase64($lab->header_image_path);
         $lab->footer_base64 = $this->imageToBase64($lab->footer_image_path);
-        
-        $results = $this->sortSubtests($results);
 
         foreach ($results as $result) {
             if ($result->verifiedBy && $result->verifiedBy->signature_path) {
@@ -307,7 +303,7 @@ class TestResultController extends Controller
 
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
-        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
+        })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
 
         if ($results->isEmpty()) {
             abort(404);
@@ -317,8 +313,6 @@ class TestResultController extends Controller
         // Convert images to Base64 for PDF
         $lab->header_base64 = $this->imageToBase64($lab->header_image_path);
         $lab->footer_base64 = $this->imageToBase64($lab->footer_image_path);
-
-        $results = $this->sortSubtests($results);
         
         foreach ($results as $result) {
             if ($result->verifiedBy && $result->verifiedBy->signature_path) {
@@ -374,88 +368,4 @@ class TestResultController extends Controller
         }
     }
 
-    private function sortSubtests($results)
-    {
-        foreach ($results as $result) {
-            $definitions = $result->testOrder->test->subtest_definitions ?? [];
-            $selectedSubtests = (array)($result->testOrder->selected_subtests ?? []);
-            $resultsData = (array)($result->subtest_results ?? []);
-
-            if (empty($resultsData)) continue;
-            if (empty($definitions)) continue;
-
-            // Build a set of definition keys for quick lookup
-            $relevantDefs = !empty($selectedSubtests)
-                ? array_filter($definitions, function($d) use ($selectedSubtests) {
-                    $id = strval($d['id'] ?? $d['name'] ?? $d['investigation'] ?? '');
-                    return in_array($id, $selectedSubtests);
-                })
-                : $definitions;
-
-            $defKeys = [];
-            foreach ($relevantDefs as $def) {
-                $defKeys[] = strval($def['id'] ?? $def['name'] ?? $def['investigation'] ?? '');
-            }
-            $defKeySet = array_flip($defKeys);
-
-            // Walk through the original saved order and group extras with the
-            // definition-based entry that precedes them.
-            // Result: [ defKey1 => [defKey1, extra1, extra2], defKey2 => [defKey2], ... ]
-            $groups = [];          // defKey => [key1, key2, ...]
-            $orphanExtras = [];    // extras that appear before any definition entry
-            $currentDefKey = null;
-            $originalKeys = array_keys($resultsData);
-
-            foreach ($originalKeys as $key) {
-                if (isset($defKeySet[$key])) {
-                    $currentDefKey = $key;
-                    if (!isset($groups[$currentDefKey])) {
-                        $groups[$currentDefKey] = [];
-                    }
-                    $groups[$currentDefKey][] = $key;
-                } else {
-                    // This is an extra/custom entry
-                    if ($currentDefKey !== null) {
-                        $groups[$currentDefKey][] = $key;
-                    } else {
-                        $orphanExtras[] = $key;
-                    }
-                }
-            }
-
-            // Now rebuild in definition order, with each group's extras right after
-            $sorted = [];
-
-            // Place orphan extras first (extras before any definition)
-            foreach ($orphanExtras as $key) {
-                if (isset($resultsData[$key])) {
-                    $sorted[$key] = $resultsData[$key];
-                }
-            }
-
-            // Place definition entries in definition order, each followed by its extras
-            foreach ($defKeys as $defKey) {
-                if (isset($groups[$defKey])) {
-                    foreach ($groups[$defKey] as $key) {
-                        if (isset($resultsData[$key])) {
-                            $sorted[$key] = $resultsData[$key];
-                        }
-                    }
-                } elseif (isset($resultsData[$defKey])) {
-                    // Definition exists in results but had no group entry
-                    $sorted[$defKey] = $resultsData[$defKey];
-                }
-            }
-
-            // Finally, add any remaining keys not yet placed (safety net)
-            foreach ($resultsData as $key => $val) {
-                if (!isset($sorted[$key])) {
-                    $sorted[$key] = $val;
-                }
-            }
-
-            $result->subtest_results = $sorted;
-        }
-        return $results;
-    }
 }

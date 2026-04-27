@@ -129,6 +129,11 @@ class User extends Authenticatable
             return true;
         }
 
+        // Match frontend logic in AuthenticatedLayout.tsx
+        if (in_array($this->role, ['admin', 'lab_admin', 'supervisor'])) {
+            return true;
+        }
+
         return in_array($permission, $this->permissions ?? []);
     }
 }

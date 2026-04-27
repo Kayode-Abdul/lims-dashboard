@@ -24,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
+        Gate::before(function (User $user, string $ability) {
+            if ($user->hasPermission($ability)) {
+                return true;
+            }
+        });
+
         Gate::define('access-super-admin', function (User $user) {
             return $user->is_super_admin === true;
         });

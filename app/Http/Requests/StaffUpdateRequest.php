@@ -32,7 +32,7 @@ class StaffUpdateRequest extends FormRequest
                 'max:255',
                 \Illuminate\Validation\Rule::unique('users')->ignore($this->route('staff')),
             ],
-            'role' => ['required', 'string', 'in:admin,pathologist,lab_tech,supervisor,receptionist'],
+            'role' => ['required', 'string', 'max:255'],
             'signature' => ['nullable', 'image', 'max:2048'],
             'department' => ['nullable', 'string', 'max:255'],
             'is_active' => ['required', 'boolean'],

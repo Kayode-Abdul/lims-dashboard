@@ -29,6 +29,7 @@ export interface User {
     lab?: {
         id: number;
         name: string;
+        currency: string | null;
         logo_url: string | null;
         subscription_status: 'pending' | 'active' | 'expired';
         expires_at: string | null;

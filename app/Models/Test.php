@@ -38,6 +38,7 @@ class Test extends Model
         'subtest_definitions',
         'parent_id',
         'lab_id',
+        'has_sensitivity',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class Test extends Model
         'is_active' => 'boolean',
         'is_group' => 'boolean',
         'has_subtests' => 'boolean',
+        'has_sensitivity' => 'boolean',
         'subtest_definitions' => 'array',
     ];
 

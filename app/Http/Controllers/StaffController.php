@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StaffUpdateRequest;
 use App\Models\User;
 use App\Models\Department;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -18,6 +19,8 @@ class StaffController extends Controller
      */
     public function index(Request $request): Response
     {
+        $this->authorize('staff.manage');
+        
         $query = User::query();
         // Global scope from HasLab trait handles the lab_id filtering
 
@@ -54,7 +57,15 @@ class StaffController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Staff/Create');
+        $this->authorize('staff.manage');
+
+        $roles = Role::where('lab_id', auth()->user()->lab_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'permissions']);
+
+        return Inertia::render('Staff/Create', [
+            'roles' => $roles
+        ]);
     }
 
     /**
@@ -62,16 +73,14 @@ class StaffController extends Controller
      */
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermission('staff.manage')) {
-            return back()->with('error', 'You do not have permission to manage staff.');
-        }
+        $this->authorize('staff.manage');
 
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:users',
             'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
-            'role' => 'required|string|in:pathologist,lab_tech,supervisor,admin,receptionist',
+            'role' => 'required|string|max:255',
             'department' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:500',
@@ -120,6 +129,8 @@ class StaffController extends Controller
     }
     public function show(User $staff): Response
     {
+        $this->authorize('staff.manage');
+        
         return Inertia::render('Staff/Show', [
             'user' => $staff,
         ]);
@@ -130,14 +141,21 @@ class StaffController extends Controller
      */
     public function edit(User $staff): Response
     {
+        $this->authorize('staff.manage');
+        
         $departments = Department::where('lab_id', auth()->user()->lab_id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $roles = Role::where('lab_id', auth()->user()->lab_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'permissions']);
+
         return Inertia::render('Staff/Edit', [
             'user' => $staff,
             'departments' => $departments,
+            'roles' => $roles,
         ]);
     }
 
@@ -146,9 +164,7 @@ class StaffController extends Controller
      */
     public function update(StaffUpdateRequest $request, User $staff)
     {
-        if (!auth()->user()->hasPermission('staff.manage')) {
-            return back()->with('error', 'You do not have permission to manage staff.');
-        }
+        $this->authorize('staff.manage');
 
         $data = $request->validated();
 
@@ -195,9 +211,7 @@ class StaffController extends Controller
      */
     public function destroy(User $staff)
     {
-        if (!auth()->user()->hasPermission('staff.manage')) {
-            return back()->with('error', 'You do not have permission to manage staff.');
-        }
+        $this->authorize('staff.manage');
 
         $staff->update(['is_active' => false]);
 

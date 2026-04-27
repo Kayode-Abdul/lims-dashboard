@@ -20,6 +20,7 @@ class TestResult extends Model
         'test_order_id',
         'result_value',
         'subtest_results',
+        'sensitivities',
         'result_type',
         'reference_range',
         'units',
@@ -34,6 +35,7 @@ class TestResult extends Model
         'is_abnormal' => 'boolean',
         'verified_at' => 'datetime',
         'subtest_results' => 'array',
+        'sensitivities' => 'array',
     ];
 
     public function testOrder()

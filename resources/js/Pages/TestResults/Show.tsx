@@ -20,6 +20,8 @@ interface Lab {
     address?: string;
     header_url?: string;
     footer_url?: string;
+    pdf_margin_top?: string;
+    web_margin_top?: string;
 }
 
 interface TestResult {
@@ -34,6 +36,7 @@ interface TestResult {
     verified_by: number | null;
     verified_at: string | null;
     subtest_results: any;
+    sensitivities?: any[];
     created_at: string;
     test_order: {
         id: number;
@@ -61,6 +64,7 @@ interface TestResult {
             test_name: string;
             test_code?: string;
             department?: string;
+            parent_id?: number | null;
             subtest_definitions?: any[];
             category?: {
                 id: number;
@@ -322,7 +326,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                             </div>
 
                             {/* Patient & Order Details Grid */}
-                            <div className="grid grid-cols-2 gap-5 p-2 pb-2 pt-1  rounded-xl print:bg-white print:p-0">
+                            <div className="grid grid-cols-2 gap-5 pb-2 pt-1 rounded-xl print:bg-white print:p-0">
                                 <div>
                                     <div className="space-y-1">
                                         <div className="flex justify-between">
@@ -349,40 +353,24 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                 {firstResult.test_order?.patient?.phone || 'N/A'}
                                             </span>
                                         </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span className="text-[12px] text-gray-900 font-semibold">Test ID:</span>
-                                            <span className="text-[12px] font-mono font-bold text-gray-900 ">
-                                                {order_number}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-[12px] text-gray-900 font-semibold">Sample Type:</span>
-                                            <span className="text-[12px] text-gray-900 ">
-                                                {firstResult.test_order?.sample_type || 'N/A'}
-                                            </span>
-                                        </div>
                                         {(!firstResult.test_order.hospital?.name && !firstResult.test_order.doctor?.name) ? (
                                             <>
                                                 {firstResult.test_order?.patient?.patient_type === 'walk-in' ? (
                                                     <div className="flex justify-between">
                                                         <span className="text-[12px] text-gray-900 font-semibold">Patient Type:</span>
-                                                        <span className="text-[12px] font-bold text-gray-900  uppercase">Walk in</span>
+                                                        <span className="text-[12px] font-bold text-gray-900 uppercase">Walk in</span>
                                                     </div>
                                                 ) : firstResult.test_order?.patient?.patient_type === 'hmo' ? (
                                                     <>
                                                         <div className="flex justify-between">
                                                             <span className="text-[12px] text-gray-900 font-semibold">HMO Name:</span>
-                                                            <span className="text-[12px] font-bold text-gray-900 ">
+                                                            <span className="text-[12px] font-bold text-gray-900">
                                                                 {firstResult.test_order?.patient?.hmo?.name || 'N/A'}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">
                                                             <span className="text-[12px] text-gray-900 font-semibold">HMO Type:</span>
-                                                            <span className="text-[12px] font-bold text-gray-900  uppercase">
+                                                            <span className="text-[12px] font-bold text-gray-900 uppercase">
                                                                 {firstResult.test_order?.patient?.hmo_type || 'N/A'}
                                                             </span>
                                                         </div>
@@ -393,18 +381,34 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                             <>
                                                 <div className="flex justify-between">
                                                     <span className="text-[12px] text-gray-900 font-semibold">Ref Hospital:</span>
-                                                    <span className="text-[12px] text-gray-900 ">
+                                                    <span className="text-[12px] text-gray-900">
                                                         {firstResult.test_order.hospital?.name || 'N/A'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-[12px] text-gray-900 font-semibold">Ref Dr:</span>
-                                                    <span className="text-[12px] text-gray-900 ">
+                                                    <span className="text-[12px] text-gray-900">
                                                         {firstResult.test_order.doctor?.name || 'N/A'}
                                                     </span>
                                                 </div>
                                             </>
                                         )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between">
+                                            <span className="text-[12px] text-gray-900 font-semibold">Test ID:</span>
+                                            <span className="text-[12px] font-mono font-bold text-gray-900">
+                                                {order_number}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[12px] text-gray-900 font-semibold">Sample Type:</span>
+                                            <span className="text-[12px] text-gray-900">
+                                                {firstResult.test_order?.sample_type || 'N/A'}
+                                            </span>
+                                        </div>
                                         <div className="flex justify-between">
                                             <span className="text-[12px] text-gray-900 font-semibold">Ordered Date:</span>
                                             <span className="text-[12px] text-gray-900 ">
@@ -427,28 +431,46 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                 <table className="min-w-full">
                                     <thead>
                                         <tr className="bg-white">
-                                            <th className="px-6 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest group-header">Test Parameter</th>
+                                            <th className="py-2 pr-6 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest group-header">Test Parameter</th>
                                             <th className="px-6 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest group-header">Result</th>
-                                            <th className="px-6 py-2 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-wrap group-header">Ref/Unit Value</th>
+                                            <th className="px-6 py-2 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-wrap group-header">Ref Value/Unit</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white">
-                                        {results.map((res) => (
+                                        {results.map((res) => {
+                                            const isChildTest = !!res.test_order?.test?.parent_id;
+                                            return (
                                             <React.Fragment key={res.id}>
-                                                <tr className="bg-white">
-                                                    <td className="px-6 py-2 whitespace-nowrap text-xs font-bold text-indigo-900 dark:text-indigo-100 uppercase">
+                                                <tr className={isChildTest ? 'bg-white' : 'bg-white'}>
+                                                    <td className={`py-2 pr-6 whitespace-nowrap text-xs uppercase ${
+                                                        isChildTest
+                                                            ? 'font-semibold text-gray-700 dark:text-gray-300 italic'
+                                                            : 'font-bold text-indigo-900 dark:text-indigo-100'
+                                                    }`}>
                                                         {res.test_order?.test?.test_name}
                                                     </td>
-                                                    <td className={`px-6 py-2 whitespace-nowrap text-xs font-bold flex items-center gap-2 ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
-                                                        {res.result_value?.replace(/ \((High|Low)\)/, '') || ''}
+                                                    <td className={`px-6 py-2 whitespace-nowrap text-xs font-bold flex flex-col items-start gap-1 ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
+                                                        <div className="flex items-center gap-2">
+                                                            {res.result_value?.replace(/ \((High|Low)\)/, '') || ''}
 
-                                                        {res.is_abnormal && (
-                                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[10px] font-black text-red-700 animate-pulse">
-                                                                {res.result_value?.includes('(High)') ? 'H' : res.result_value?.includes('(Low)') ? 'L' : '!'}
-                                                            </span>
+                                                            {res.is_abnormal && (
+                                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[10px] font-black text-red-700 animate-pulse">
+                                                                    {res.result_value?.includes('(High)') ? 'H' : res.result_value?.includes('(Low)') ? 'L' : '!'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {res.sensitivities && Array.isArray(res.sensitivities) && res.sensitivities.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {res.sensitivities.map((s: any, idx: number) => (
+                                                                    <span key={idx} className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                                                                        {s.type === 'number' ? `[${'+'.repeat(parseInt(s.value) || 0)}]` : `[${s.value}]`}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-2 whitespace-nowrap text-xs font-bold text-indigo-800 dark:text-indigo-200">
+                                                    <td className="px-6 py-2 whitespace-nowrap text-xs font-bold text-indigo-800 dark:text-indigo-200 text-right">
                                                         {res.reference_range || ''} {res.units || ''}
                                                     </td>
                                                 </tr>
@@ -458,61 +480,31 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                     const definitions: any[] = res.test_order?.test?.subtest_definitions || [];
                                                     const selectedSubtests: string[] = res.test_order?.selected_subtests || [];
 
-                                                    // Build ordered list respecting definition order + grouping extras after their parent
-                                                    let orderedEntries: { key: string; sub: any }[] = [];
+                                                    const orderedEntries: {key: string, sub: any}[] = [];
 
-                                                    if (definitions.length > 0) {
-                                                        const relevantDefs = selectedSubtests.length > 0
-                                                            ? definitions.filter((d: any) => selectedSubtests.includes(String(d.id || d.name || d.investigation)))
-                                                            : definitions;
-
-                                                        const defKeys = relevantDefs.map((d: any) => String(d.id || d.name || d.investigation));
-                                                        const defKeySet = new Set(defKeys);
-
-                                                        // Walk original saved order and group extras with their preceding definition
-                                                        const groups: Record<string, string[]> = {};
-                                                        const orphanExtras: string[] = [];
-                                                        let currentDefKey: string | null = null;
-                                                        const originalKeys = Object.keys(subresultsObj);
-
-                                                        for (const key of originalKeys) {
-                                                            if (defKeySet.has(key)) {
-                                                                currentDefKey = key;
-                                                                if (!groups[currentDefKey]) groups[currentDefKey] = [];
-                                                                groups[currentDefKey].push(key);
-                                                            } else {
-                                                                if (currentDefKey !== null) {
-                                                                    groups[currentDefKey].push(key);
-                                                                } else {
-                                                                    orphanExtras.push(key);
-                                                                }
-                                                            }
-                                                        }
-
-                                                        // Orphan extras first
-                                                        for (const key of orphanExtras) {
-                                                            if (subresultsObj[key]) orderedEntries.push({ key, sub: subresultsObj[key] });
-                                                        }
-                                                        // Definition entries in definition order, each followed by extras
-                                                        for (const defKey of defKeys) {
-                                                            if (groups[defKey]) {
-                                                                for (const key of groups[defKey]) {
-                                                                    if (subresultsObj[key]) orderedEntries.push({ key, sub: subresultsObj[key] });
-                                                                }
-                                                            } else if (subresultsObj[defKey]) {
-                                                                orderedEntries.push({ key: defKey, sub: subresultsObj[defKey] });
-                                                            }
-                                                        }
-                                                        // Safety: any remaining keys
-                                                        const placedKeys = new Set(orderedEntries.map(e => e.key));
-                                                        for (const key of originalKeys) {
-                                                            if (!placedKeys.has(key) && subresultsObj[key]) {
+                                                    // Use definition arrays to establish strict ordering to combat JS integer-key string sorting
+                                                    if (selectedSubtests && selectedSubtests.length > 0) {
+                                                        selectedSubtests.forEach(defKey => {
+                                                            const key = String(defKey);
+                                                            if (subresultsObj[key]) {
                                                                 orderedEntries.push({ key, sub: subresultsObj[key] });
                                                             }
-                                                        }
-                                                    } else {
-                                                        orderedEntries = Object.entries(subresultsObj).map(([key, sub]) => ({ key, sub }));
+                                                        });
+                                                    } else if (definitions && definitions.length > 0) {
+                                                        definitions.forEach(def => {
+                                                            const key = String(def.id || def.name || def.investigation);
+                                                            if (subresultsObj[key]) {
+                                                                orderedEntries.push({ key, sub: subresultsObj[key] });
+                                                            }
+                                                        });
                                                     }
+
+                                                    // Loop again to catch extras
+                                                    Object.keys(subresultsObj).forEach(key => {
+                                                        if (!orderedEntries.find(e => e.key === key)) {
+                                                            orderedEntries.push({ key, sub: subresultsObj[key] });
+                                                        }
+                                                    });
 
                                                     return orderedEntries.map(({ key, sub }, idx: number) => {
                                                         const currentName = sub.name || sub.investigation || '';
@@ -522,22 +514,33 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                         return (
                                                             <React.Fragment key={`${res.id}-sub-${key}`}>
                                                                 <tr className="border-none">
-                                                                    <td className="px-6 py-1 pl-12 text-xs font-medium text-black-900 dark:text-gray-400 italic">
+                                                                    <td className="py-1 pr-6 text-xs font-medium text-black-900 dark:text-gray-400 italic">
                                                                         {displayName}
                                                                     </td>
                                                                     <td className={`px-6 py-1 text-xs font-bold ${sub.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
                                                                         {sub.value}
                                                                     </td>
-                                                                    <td className="px-6 py-1 text-xs text-black-900 dark:text-gray-400">
+                                                                    <td className="px-6 py-1 text-xs text-black-900 dark:text-gray-400 text-right">
                                                                         {sub.reference_range || sub.reference_value || ''} {sub.units || ''}
                                                                     </td>
                                                                 </tr>
                                                                 {sub.additional_ranges?.map((ar: any, i: number) => (
                                                                     <tr key={`${res.id}-sub-${key}-ar-${i}`} className="border-none">
-                                                                        <td className="px-6 py-1 pl-12 text-xs"></td>
+                                                                        <td className="py-1 pr-6 text-xs"></td>
                                                                         <td></td>
-                                                                        <td className="px-6 py-1 text-xs text-gray-500">
+                                                                        <td className="px-6 py-1 text-xs text-gray-500 text-right">
                                                                             {ar.range || ar.reference_range || ''} {ar.units || ''}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                                {sub.child_results?.map((child: any, i: number) => (
+                                                                    <tr key={`${res.id}-sub-${key}-child-${i}`} className="border-none">
+                                                                        <td className="py-1 pr-6 text-xs text-gray-500 italic"></td>
+                                                                        <td className={`px-6 py-1 text-xs font-bold ${child.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
+                                                                            {child.value}
+                                                                        </td>
+                                                                        <td className="px-6 py-1 text-xs text-black-900 dark:text-gray-400 text-right">
+                                                                            {child.reference_range || child.reference_value || ''} {child.units || ''}
                                                                         </td>
                                                                     </tr>
                                                                 ))}
@@ -547,15 +550,16 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                 })()}
                                                 <tr className="h-4 border-none"><td colSpan={3} className="border-none"></td></tr>
                                             </React.Fragment>
-                                        ))}
+                                        );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
 
                             {/* Notes and Comments */}
-                            <div className="space-y-4">
+                            <div className="space-y-4 pt-4 border-t border-dashed border-gray-200">
                                 {results.map((res) => res.notes && (
-                                    <div key={`note-${res.id}`} className="p-4 rounded-lg">
+                                    <div key={`note-${res.id}`} className="py-2">
                                         <h4 className="text-xs font-bold text-gray-800 dark:text-gray-800 mb-1">
                                             Comment:
                                         </h4>
@@ -586,28 +590,28 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                 {renderQRCode(order_number)}
                                             </div>
 
-                                            <div className="w-64 text-center relative flex flex-col items-center">
-                                                <div className="relative w-full flex justify-center">
-                                                    {signaturePath ? (
-                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                            <img src={`/storage/${signaturePath}`} alt="Signature" className="h-20 max-w-[200px] object-contain" />
-                                                        </div>
-                                                    ) : verifiedBy ? (
-                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                            <span className="font-script text-xl text-blue-800">{signerName}</span>
-                                                        </div>
-                                                    ) : null}
-                                                    
-                                                    <div className="border-t border-gray-400 w-full pt-1 mt-8">
-                                                        <p className="text-[9px] uppercase font-bold text-gray-300">
-                                                            MED. LAB. SCIENTIST.
-                                                        </p>
-                                                        {verifiedBy && (
-                                                            <p className="text-[9px] text-gray-400 mt-0.5">{signerName}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                     <div className="w-64 text-center relative flex flex-col items-center">
+                                                         <div className="relative w-full flex justify-center">
+                                                             {signaturePath ? (
+                                                                 <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
+                                                                     <img src={`/storage/${signaturePath}`} alt="Signature" className="h-20 max-w-[200px] object-contain" />
+                                                                 </div>
+                                                             ) : verifiedBy ? (
+                                                                 <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
+                                                                     <span className="font-script text-xl text-black">{signerName}</span>
+                                                                 </div>
+                                                             ) : null}
+                                                             
+                                                             <div className="w-full pt-1 mt-8">
+                                                                 <p className="text-[9px] uppercase font-bold text-black">
+                                                                     MED. LAB. SCIENTIST.
+                                                                 </p>
+                                                                 {verifiedBy && (
+                                                                     <p className="text-[9px] text-black mt-0.5">{signerName}</p>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                     </div>
                                         </div>
                                     );
                                 })()}
@@ -703,12 +707,22 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                     /* Use padding on the content wrapper instead of page margins
                        so the browser has no margin space to print URLs/dates */
                     .print-content {
-                        padding: 1.5cm 1.2cm 5.0cm 1.2cm !important;
+                        padding: ${(lab?.web_margin_top) || '1.80'}cm 1.2cm 5.0cm 1.2cm !important;
                         margin: 0 !important;
                         width: 100% !important;
                         max-width: none !important;
                         position: relative !important;
                         min-height: 100vh !important;
+                        color: #000 !important;
+                    }
+                    .print-content * {
+                        color: #000 !important;
+                    }
+                    .print-content .text-red-600, .print-content .abnormal {
+                        color: #dc2626 !important; /* Keep abnormal red as requested previously, or black if user wants EVERYTHING black? User said "all the result data(labels and text) black". Let's use black. */
+                    }
+                    .print-content * {
+                        color: #000 !important;
                     }
                     /* Hide navigation, buttons, footer, and all non-print elements */
                     nav, header, footer, button, .print\\:hidden, aside,
@@ -757,7 +771,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                         bottom: 1.5cm !important;
                         left: 1.2cm !important;
                         right: 1.2cm !important;
-                        border-top: 1px solid #eee !important;
+                        border-top: none !important;
                         padding-top: 10px !important;
                         width: calc(100% - 2.4cm) !important;
                         display: flex !important;

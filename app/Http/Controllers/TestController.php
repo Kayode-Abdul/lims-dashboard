@@ -20,7 +20,7 @@ class TestController extends Controller
     {
         $query = Test::with(['category', 'hmoPrices.hmo', 'hospitalPrices.hospital', 'subTests', 'parent']);
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->get('search');
             $searchTerms = preg_split('/\s+/', trim($search));
             $query->where(function ($q) use ($search, $searchTerms) {
@@ -30,13 +30,15 @@ class TestController extends Controller
                 // Also match each word individually against test_name
                 $q->orWhere(function ($wordGroup) use ($searchTerms) {
                     foreach ($searchTerms as $term) {
-                        $wordGroup->where('test_name', 'like', "%{$term}%");
+                        if (!empty($term)) {
+                            $wordGroup->where('test_name', 'like', "%{$term}%");
+                        }
                     }
                 });
             });
         }
 
-        if ($request->has('category')) {
+        if ($request->filled('category')) {
             $query->where('category_id', $request->get('category'));
         }
 

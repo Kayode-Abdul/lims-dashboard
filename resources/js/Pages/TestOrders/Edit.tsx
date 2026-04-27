@@ -86,6 +86,8 @@ export default function Edit({
     doctor?: any;
     sample_type?: string;
 }>) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const { data, setData, put, processing, errors } = useForm({
         test_ids: orders.map(o => o.test_id),
         hospital_id: hospital?.id?.toString() || '',
@@ -174,7 +176,7 @@ export default function Edit({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('test-orders.update-batch', orderNumber.replace('/', '-')));
+        put(route('test-orders.update-batch', orderNumber));
     };
 
     const discountValue = data.discount_type === 'percentage'
@@ -193,7 +195,7 @@ export default function Edit({
             <div className="py-12">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
                     <Link
-                        href={route('test-orders.show-batch', orderNumber.replace('/', '-'))}
+                        href={route('test-orders.show-batch', orderNumber)}
                         className="mb-6 inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 transition-colors"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -344,11 +346,11 @@ export default function Edit({
 
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-gray-500">Subtotal:</span>
-                                        <span className="font-bold">₦{totalPrice.toLocaleString()}</span>
+                                        <span className="font-bold">{currency}{totalPrice.toLocaleString()}</span>
                                     </div>
 
                                     <div>
-                                        <InputLabel htmlFor="discount" value={`Discount (${data.discount_type === 'percentage' ? '%' : '₦'})`} />
+                                        <InputLabel htmlFor="discount" value={`Discount (${data.discount_type === 'percentage' ? '%' : currency})`} />
                                         <div className="mt-1 flex gap-2">
                                             <TextInput
                                                 id="discount"
@@ -363,7 +365,7 @@ export default function Edit({
                                                 value={data.discount_type}
                                                 onChange={(e) => setData('discount_type', e.target.value as 'amount' | 'percentage')}
                                             >
-                                                <option value="amount">₦</option>
+                                                <option value="amount">{currency}</option>
                                                 <option value="percentage">%</option>
                                             </select>
                                         </div>
@@ -371,7 +373,7 @@ export default function Edit({
 
                                     <div className="flex justify-between items-center text-sm font-bold border-t pt-2 dark:border-gray-700">
                                         <span>Total Payable:</span>
-                                        <span className="text-indigo-600">₦{totalPayable.toLocaleString()}</span>
+                                        <span className="text-indigo-600">{currency}{totalPayable.toLocaleString()}</span>
                                     </div>
 
                                     <div>
@@ -390,7 +392,7 @@ export default function Edit({
                                     {balanceDue > 0 && (
                                         <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded text-sm text-red-800 dark:text-red-400 flex justify-between items-center font-bold">
                                             <span>Remaining Balance:</span>
-                                            <span>₦{balanceDue.toLocaleString()}</span>
+                                            <span>{currency}{balanceDue.toLocaleString()}</span>
                                         </div>
                                     )}
                                 </div>

@@ -12,6 +12,7 @@ use App\Http\Requests\StoreTestOrderRequest;
 use App\Http\Requests\UpdateTestOrderRequest;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TestOrderController extends Controller
 {
@@ -58,7 +59,11 @@ class TestOrderController extends Controller
         ])
         ->groupBy('order_number', 'patient_id');
 
-        $groupedOrders = $query->orderBy('ordered_at', 'desc')->paginate(15)->withQueryString();
+        $groupedOrders = $query->orderByRaw('SUBSTRING_INDEX(order_number, "/", -1) DESC')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(order_number, "/", 1) AS UNSIGNED) DESC')
+            ->orderBy('ordered_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
         
         // Eager load relations for the paginated items
         $groupedOrders->load(['patient', 'orderedBy', 'hospital', 'doctor']);
@@ -124,7 +129,6 @@ class TestOrderController extends Controller
 
     public function show(string $orderNumber)
     {
-        $orderNumber = str_replace('-', '/', $orderNumber);
         // Get all orders with the same order_number (the batch)
         $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'result', 'hospital', 'doctor'])
             ->where('order_number', $orderNumber)
@@ -151,6 +155,9 @@ class TestOrderController extends Controller
             'orderedAt' => $firstOrder->ordered_at,
             'notes' => $firstOrder->notes,
             'orders' => $orders,
+            'sensitivities' => \App\Models\Sensitivity::where('lab_id', auth()->user()->lab_id)
+                ->where('is_active', true)
+                ->get(),
             'summary' => [
                 'totalPrice' => $totalPrice,
                 'totalDiscount' => $totalDiscount,
@@ -161,6 +168,72 @@ class TestOrderController extends Controller
         ]);
     }
 
+    public function generateInvoice(string $orderNumber)
+    {
+        $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'hospital', 'doctor'])
+            ->where('order_number', $orderNumber)
+            ->get();
+
+        if ($orders->isEmpty()) {
+            abort(404);
+        }
+
+        $lab = \App\Models\Lab::find(auth()->user()->lab_id);
+        
+        $totalPrice = $orders->sum('price');
+        $totalDiscount = $orders->sum('discount');
+        $totalPaid = $orders->sum('amount_paid');
+        $balance = max(0, ($totalPrice - $totalDiscount) - $totalPaid);
+
+        $pdf = Pdf::loadView('reports.invoice', [
+            'orders' => $orders,
+            'lab' => $lab,
+            'totalPrice' => $totalPrice,
+            'totalDiscount' => $totalDiscount,
+            'totalPaid' => $totalPaid,
+            'balance' => $balance,
+            'patient' => $orders->first()->patient,
+            'orderNumber' => $orderNumber,
+            'orderedAt' => $orders->first()->ordered_at,
+            'is_pdf' => true,
+        ]);
+
+        $patientName = Str::slug($orders->first()->patient->first_name . ' ' . $orders->first()->patient->last_name, '_');
+        $safeOrderNumber = str_replace('/', '-', $orderNumber);
+        return $pdf->download("Invoice_{$patientName}_{$safeOrderNumber}.pdf");
+    }
+
+    public function viewInvoice(string $orderNumber)
+    {
+        $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'hospital', 'doctor'])
+            ->where('order_number', $orderNumber)
+            ->get();
+
+        if ($orders->isEmpty()) {
+            abort(404);
+        }
+
+        $lab = \App\Models\Lab::find(auth()->user()->lab_id);
+        
+        $totalPrice = $orders->sum('price');
+        $totalDiscount = $orders->sum('discount');
+        $totalPaid = $orders->sum('amount_paid');
+        $balance = max(0, ($totalPrice - $totalDiscount) - $totalPaid);
+
+        return view('reports.invoice', [
+            'orders' => $orders,
+            'lab' => $lab,
+            'totalPrice' => $totalPrice,
+            'totalDiscount' => $totalDiscount,
+            'totalPaid' => $totalPaid,
+            'balance' => $balance,
+            'patient' => $orders->first()->patient,
+            'orderNumber' => $orderNumber,
+            'orderedAt' => $orders->first()->ordered_at,
+            'is_pdf' => false,
+        ]);
+    }
+
     public function create()
     {
         return Inertia::render('TestOrders/Create', [
@@ -168,7 +241,7 @@ class TestOrderController extends Controller
             'hospitals' => \App\Models\Hospital::where('is_active', true)->get(['id', 'name']),
             'doctors' => \App\Models\Doctor::where('is_active', true)->get(['id', 'name', 'hospital_id']),
             'tests' => Test::where('is_active', true)
-            ->with('hmoPrices')
+            ->with(['hmoPrices', 'hospitalPrices'])
             ->get([
                 'id',
                 'test_name',
@@ -333,6 +406,8 @@ class TestOrderController extends Controller
             $order = TestOrder::create([
                 'order_number' => $batchOrderNumber, // Same for all tests in batch
                 'patient_id' => $patient->id,
+                'patient_type' => $patient_type,
+                'hmo_id' => $hmo_id,
                 'test_id' => $test->id,
                 'hospital_id' => $validated['hospital_id'] ?? null,
                 'doctor_id' => $validated['doctor_id'] ?? null,
@@ -406,7 +481,6 @@ class TestOrderController extends Controller
 
     public function updateBatchStatus(Request $request, string $orderNumber)
     {
-        $orderNumber = str_replace('-', '/', $orderNumber);
         $request->validate([
             'status' => 'required|in:pending,collected,processing,completed,cancelled',
         ]);
@@ -423,7 +497,6 @@ class TestOrderController extends Controller
             return back()->with('error', 'You do not have permission to edit orders.');
         }
 
-        $orderNumber = str_replace('-', '/', $orderNumber);
         $orders = TestOrder::with(['patient', 'test'])
             ->where('order_number', $orderNumber)
             ->get();
@@ -454,7 +527,6 @@ class TestOrderController extends Controller
             return back()->with('error', 'You do not have permission to edit orders.');
         }
 
-        $orderNumber = str_replace('-', '/', $orderNumber);
         $validated = $request->validate([
             'test_ids' => 'required|array',
             'test_ids.*' => 'exists:tests,id',
@@ -466,6 +538,8 @@ class TestOrderController extends Controller
             'doctor_id' => 'nullable|exists:doctors,id',
             'sample_type' => 'nullable|string',
             'subtest_selections' => 'nullable|array',
+            'patient_type' => 'nullable|string',
+            'hmo_id' => 'nullable|exists:hmos,id',
         ]);
 
         DB::transaction(function () use ($orderNumber, $validated) {
@@ -496,6 +570,8 @@ class TestOrderController extends Controller
             
             // Update common fields for all remaining orders in this batch
             TestOrder::where('order_number', $orderNumber)->update([
+                'patient_type' => $validated['patient_type'] ?? null,
+                'hmo_id' => $validated['hmo_id'] ?? null,
                 'hospital_id' => $validated['hospital_id'],
                 'doctor_id' => $validated['doctor_id'],
                 'notes' => $validated['notes'],
@@ -555,6 +631,8 @@ class TestOrderController extends Controller
                 ])->first();
 
                 $orderData = [
+                    'patient_type' => $validated['patient_type'] ?? null,
+                    'hmo_id' => $validated['hmo_id'] ?? null,
                     'hospital_id' => $validated['hospital_id'],
                     'doctor_id' => $validated['doctor_id'],
                     'price' => $orderPrice,
@@ -583,7 +661,7 @@ class TestOrderController extends Controller
             }
         });
 
-        return redirect()->route('test-orders.show-batch', str_replace('/', '-', $orderNumber))
+        return redirect()->route('test-orders.show-batch', $orderNumber)
             ->with('message', 'Order updated successfully.');
     }
 
@@ -617,7 +695,6 @@ class TestOrderController extends Controller
             return back()->with('error', 'You do not have permission to delete orders.');
         }
 
-        $orderNumber = str_replace('-', '/', $orderNumber);
 
         DB::transaction(function () use ($orderNumber) {
             $orders = TestOrder::where('order_number', $orderNumber)->get();

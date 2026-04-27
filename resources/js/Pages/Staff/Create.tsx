@@ -5,10 +5,18 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { UserPlus, ArrowLeft, Mail, Tag, Shield } from 'lucide-react';
+import { UserPlus, ArrowLeft, Mail, Tag, Shield, Eye, EyeOff } from 'lucide-react';
 import Checkbox from '@/Components/Checkbox';
+import { useState } from 'react';
+import { PageProps } from '@/types';
 
-export default function Create() {
+interface Role {
+    id: number;
+    name: string;
+    permissions: string[];
+}
+
+export default function Create({ roles }: PageProps<{ roles: Role[] }>) {
     const PERMISSIONS = [
         { id: 'dashboard.view', label: 'View Dashboard', category: 'General' },
         { id: 'patients.view', label: 'View Patients', category: 'Patients' },
@@ -19,6 +27,8 @@ export default function Create() {
         { id: 'results.manage', label: 'Manage Results', category: 'Tests' },
         { id: 'results.verify', label: 'Verify Results (with Signature)', category: 'Tests' },
         { id: 'billing.manage', label: 'Manage Billing', category: 'Financial' },
+        { id: 'accounting.view', label: 'View Accounting Dashboard', category: 'Financial' },
+        { id: 'accounting.manage_income_source', label: 'Manage Income Source', category: 'Financial' },
         { id: 'staff.manage', label: 'Manage Staff', category: 'Administrative' },
         { id: 'lab.settings', label: 'Lab Settings', category: 'Administrative' },
         { id: 'audit.view', label: 'View Audit Logs', category: 'Administrative' },
@@ -31,10 +41,13 @@ export default function Create() {
         email: '',
         password: '',
         password_confirmation: '',
-        role: 'lab_tech',
+        role: roles.length > 0 ? roles[0].name : '',
         department: '',
-        permissions: [] as string[],
+        permissions: roles.length > 0 ? (roles[0].permissions || []) : [] as string[],
     });
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const togglePermission = (id: string) => {
         const current = [...data.permissions];
@@ -127,15 +140,21 @@ export default function Create() {
                                     <select
                                         id="role"
                                         value={data.role}
-                                        onChange={(e) => setData('role', e.target.value)}
+                                        onChange={(e) => {
+                                            const selectedRole = roles.find(r => r.name === e.target.value);
+                                            setData((prev) => ({
+                                                ...prev,
+                                                role: e.target.value,
+                                                permissions: selectedRole ? (selectedRole.permissions || []) : [],
+                                            }));
+                                        }}
                                         className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
                                         required
                                     >
-                                        <option value="pathologist">Pathologist</option>
-                                        <option value="lab_tech">Laboratory Technician</option>
-                                        <option value="supervisor">Supervisor</option>
-                                        <option value="admin">Administrator</option>
-                                        <option value="receptionist">Receptionist</option>
+                                        <option value="" disabled>Select a role...</option>
+                                        {roles.map(role => (
+                                            <option key={role.id} value={role.name}>{role.name}</option>
+                                        ))}
                                     </select>
                                     <InputError message={errors.role} className="mt-2" />
                                 </div>
@@ -160,27 +179,45 @@ export default function Create() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t dark:border-gray-700">
                                 <div>
                                     <InputLabel htmlFor="password" value="Initial Password" />
-                                    <TextInput
-                                        id="password"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                        className="mt-1 block w-full"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <TextInput
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={data.password}
+                                            onChange={(e) => setData('password', e.target.value)}
+                                            className="mt-1 block w-full pr-10"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
                                     <InputError message={errors.password} className="mt-2" />
                                 </div>
 
                                 <div>
                                     <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                                    <TextInput
-                                        id="password_confirmation"
-                                        type="password"
-                                        value={data.password_confirmation}
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                        className="mt-1 block w-full"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <TextInput
+                                            id="password_confirmation"
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={data.password_confirmation}
+                                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                                            className="mt-1 block w-full pr-10"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
                                     <InputError message={errors.password_confirmation} className="mt-2" />
                                 </div>
                             </div>

@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import Pagination from '@/Components/Pagination';
 import { PageProps } from '@/types';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
@@ -18,7 +19,8 @@ import {
     PieChart,
     Filter,
     Eye,
-    EyeOff
+    EyeOff,
+    Printer
 } from 'lucide-react';
 import { formatDate } from '@/Utils/dateUtils';
 import { FormEventHandler, useState } from 'react';
@@ -42,20 +44,29 @@ interface Expense {
 }
 
 interface Props extends PageProps {
-    incomeData: IncomeSource[];
-    expenses: Expense[];
-    stats: {
-        totalIncome: number;
-        totalExpenses: number;
-        netProfit: number;
+    incomeSources: {
+        data: IncomeSource[];
+        links: any[];
     };
+    expenses: {
+        data: Expense[];
+        links: any[];
+    };
+    totalIncome: number;
+    totalExpenses: number;
+    totalBalance: number;
+    totalBilled: number;
+    outstanding: number;
     filters: {
         start_date: string;
         end_date: string;
     };
+    expenseCategories: string[];
 }
 
-export default function Index({ auth, stats, expenses, incomeData, filters }: Props) {
+export default function Index({ auth, incomeSources, expenses, totalIncome, totalExpenses, totalBalance, totalBilled, outstanding, filters, expenseCategories: expenseCategoriesProps = [] }: Props) {
+    const currency = auth?.user?.lab?.currency || '₦';
+
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
     const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -63,8 +74,11 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
     const [selectedSource, setSelectedSource] = useState<IncomeSource | null>(null);
     const [sourcePatients, setSourcePatients] = useState<any[]>([]);
     const [loadingPatients, setLoadingPatients] = useState(false);
-    const [autoPayAll, setAutoPayAll] = useState(false);
-    const [expenseCategories, setExpenseCategories] = useState(['Reagents', 'Equipment', 'Salaries', 'Utilities', 'Rent', 'Consumables', 'Marketing', 'Repairs', 'Other']);
+    const [partPaymentAmount, setPartPaymentAmount] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [expenseCategories, setExpenseCategories] = useState<string[]>(
+        expenseCategoriesProps.length > 0 ? expenseCategoriesProps : ['Reagents', 'Equipment', 'Salaries', 'Utilities', 'Rent', 'Consumables', 'Marketing', 'Repairs', 'Other']
+    );
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -74,7 +88,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
         if (!revealStats && auth.user.role !== 'admin' && !auth.user.is_super_admin) {
             return '****';
         }
-        return `₦${Number(amount).toLocaleString()}`;
+        return `${currency}${Number(amount).toLocaleString()}`;
     };
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -123,21 +137,32 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
             });
     };
 
-    const handleBatchPay = () => {
+    const handleBatchPay = (isFullPayment = false) => {
         if (!selectedSource) return;
-        
-        router.post(route('accounting.batch-pay'), {
-            source_type: selectedSource.source_type,
-            source_name: selectedSource.source_name,
-            payment_method: 'Cash', // Default or prompt
-            start_date: startDate,
-            end_date: endDate
-        }, {
-            onSuccess: () => {
-                setSelectedSource(null);
-                setAutoPayAll(false);
-            }
-        });
+
+        const outstandingBalance = sourcePatients.reduce((acc, curr) => acc + (curr.price - curr.discount - curr.amount_paid), 0);
+        const amountToPay = isFullPayment ? outstandingBalance : partPaymentAmount;
+
+        if (!amountToPay || amountToPay <= 0) {
+            alert("Please enter a valid amount or ensure there is an outstanding balance.");
+            return;
+        }
+
+        if (confirm(`Are you sure you want to record a payment of ${currency}${Number(amountToPay).toLocaleString()} for ${selectedSource.source_name}?`)) {
+            router.post(route('accounting.batch-pay'), {
+                source_type: selectedSource.source_type,
+                source_name: selectedSource.source_name,
+                payment_method: paymentMethod,
+                fixed_amount: isFullPayment ? null : amountToPay,
+                start_date: startDate,
+                end_date: endDate
+            }, {
+                onSuccess: () => {
+                    setPartPaymentAmount('');
+                    fetchSourcePatients(selectedSource); // Refresh data instead of closing modal
+                }
+            });
+        }
     };
 
     const addCategory = () => {
@@ -209,7 +234,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     <ArrowUpCircle className="h-8 w-8 text-emerald-500" />
                                 </div>
                                 <div className="text-3xl font-black text-emerald-700 dark:text-emerald-300">
-                                    {formatAmount(stats.totalIncome)}
+                                    {formatAmount(totalIncome)}
                                 </div>
                             </div>
 
@@ -219,7 +244,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     <ArrowDownCircle className="h-8 w-8 text-rose-500" />
                                 </div>
                                 <div className="text-3xl font-black text-rose-700 dark:text-rose-300">
-                                    {formatAmount(stats.totalExpenses)}
+                                    {formatAmount(totalExpenses)}
                                 </div>
                             </div>
 
@@ -229,7 +254,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     <Wallet className="h-8 w-8 text-amber-500" />
                                 </div>
                                 <div className="text-3xl font-black text-amber-700 dark:text-amber-300">
-                                    {formatAmount(stats.netProfit)}
+                                    {formatAmount(totalBalance)}
                                 </div>
                             </div>
 
@@ -239,7 +264,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     <PieChart className="h-8 w-8 text-blue-500" />
                                 </div>
                                 <div className="text-3xl font-black text-blue-700 dark:text-blue-300">
-                                    {formatAmount((stats as any).totalBilled)}
+                                    {formatAmount(totalBilled)}
                                 </div>
                             </div>
 
@@ -249,7 +274,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     <DollarSign className="h-8 w-8 text-orange-500" />
                                 </div>
                                 <div className="text-3xl font-black text-orange-700 dark:text-orange-300">
-                                    {formatAmount((stats as any).outstanding)}
+                                    {formatAmount(outstanding)}
                                 </div>
                             </div>
                         </div>
@@ -263,7 +288,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                             </h3>
                             <form onSubmit={submitExpense} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div>
-                                    <InputLabel htmlFor="amount" value="Amount (₦)" />
+                                    <InputLabel htmlFor="amount" value="Amount ({currency})" />
                                     <TextInput
                                         id="amount"
                                         type="number"
@@ -388,7 +413,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y dark:divide-gray-700">
-                                        {incomeData.length > 0 ? incomeData.map((item, idx) => (
+                                        {incomeSources.data.length > 0 ? incomeSources.data.map((item, idx) => (
                                             <tr 
                                                 key={idx} 
                                                 className="text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -407,7 +432,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-2 text-gray-600 dark:text-gray-400 font-bold">{item.source_name}</td>
-                                                <td className="py-3 px-2 text-right font-bold text-gray-900 dark:text-gray-100">₦{Number(item.total_amount).toLocaleString()}</td>
+                                                <td className="py-3 px-2 text-right font-bold text-gray-900 dark:text-gray-100">{currency}{Number(item.total_amount).toLocaleString()}</td>
                                             </tr>
                                         )) : (
                                             <tr>
@@ -417,79 +442,97 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     </tbody>
                                 </table>
                             </div>
+                            <div className="p-4 border-t dark:border-gray-700">
+                                <Pagination links={incomeSources.links} />
+                            </div>
                         </div>
 
             {/* Source Details Modal */}
             <Modal show={selectedSource !== null} onClose={() => setSelectedSource(null)} maxWidth="2xl">
                 <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-start mb-4">
                         <div>
                             <h2 className="text-xl font-bold dark:text-gray-100">
                                 {selectedSource?.source_name}
                             </h2>
                             <p className="text-sm text-gray-500">{selectedSource?.source_type} Source Analysis</p>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="flex items-center text-xs font-bold text-indigo-600 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        className="rounded border-gray-300 mr-1"
-                                        checked={autoPayAll}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                if (confirm(`Are you sure you want to mark all ${sourcePatients.length} orders as PAID? This will create payment records for all of them.`)) {
-                                                    setAutoPayAll(true);
-                                                    handleBatchPay();
-                                                }
-                                            } else {
-                                                setAutoPayAll(false);
-                                            }
-                                        }}
-                                    />
-                                    AUTO PAY ALL
-                                </label>
-                            </div>
+                        <div className="flex items-center gap-4 print:hidden">
+                            <button
+                                type="button"
+                                onClick={() => window.print()}
+                                className="flex items-center gap-1 text-gray-500 hover:text-gray-700 border px-3 py-1.5 rounded text-sm font-bold bg-white dark:bg-gray-800 dark:border-gray-600"
+                            >
+                                <Printer className="h-4 w-4" /> Print
+                            </button>
                             <SecondaryButton onClick={() => setSelectedSource(null)}>Close</SecondaryButton>
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto border rounded-lg dark:border-gray-700">
+                    <div className="flex justify-between items-center bg-gray-100 dark:bg-gray-700/50 p-2 mb-4 rounded border dark:border-gray-600 print:hidden">
+                        <div className="flex items-center gap-2 w-full max-w-lg">
+                            <TextInput 
+                                type="number"
+                                value={partPaymentAmount}
+                                onChange={(e) => setPartPaymentAmount(e.target.value)}
+                                placeholder="Part Payment Amount..."
+                                className="h-9 flex-1 text-sm dark:bg-gray-800"
+                            />
+                            <select 
+                                value={paymentMethod} 
+                                onChange={(e) => setPaymentMethod(e.target.value)} 
+                                className="h-9 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="POS">POS</option>
+                            </select>
+                            <PrimaryButton onClick={() => handleBatchPay(false)} className="h-9 py-0 px-4 text-sm font-bold">PAY</PrimaryButton>
+                            <span className="text-gray-400 font-black">|</span>
+                            <button
+                                type="button"
+                                onClick={() => handleBatchPay(true)}
+                                className="h-9 px-4 rounded font-bold text-sm uppercase bg-green-500 text-white hover:bg-green-600 transition-colors whitespace-nowrap"
+                            >
+                                PAY ALL
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="print-area" className="overflow-x-auto border rounded-lg dark:border-gray-700">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-gray-50 dark:bg-gray-900/50">
                                 <tr className="text-[10px] font-bold text-gray-500 uppercase">
-                                    <th className="p-3">Patient</th>
-                                    <th className="p-3">Order # / Date</th>
-                                    <th className="p-3 text-right">Order Total</th>
-                                    <th className="p-3 text-right">Discount</th>
-                                    <th className="p-3 text-right text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20">Paid in Period</th>
-                                    <th className="p-3 text-right">Total Paid</th>
-                                    <th className="p-3 text-right">Balance</th>
-                                    <th className="p-3 text-center">Status</th>
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Lab No</th>
+                                    <th className="p-3">Name</th>
+                                    <th className="p-3">Investigations</th>
+                                    <th className="p-3 text-right">Amount</th>
+                                    <th className="p-3 text-right print:hidden text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20">Paid in Period</th>
+                                    <th className="p-3 text-right print:hidden">Balance</th>
+                                    <th className="p-3 text-center print:hidden">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-gray-700">
                                 {loadingPatients ? (
-                                    <tr><td colSpan={8} className="p-8 text-center">Loading patients...</td></tr>
+                                    <tr><td colSpan={8} className="p-8 text-center border-0">Loading...</td></tr>
                                 ) : sourcePatients.length === 0 ? (
-                                    <tr><td colSpan={8} className="p-8 text-center italic text-gray-500">No records found for this source in the selected period.</td></tr>
+                                    <tr><td colSpan={8} className="p-8 text-center italic text-gray-500 border-0">No records found.</td></tr>
                                 ) : sourcePatients.map((p: any) => (
                                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                        <td className="p-3 text-[11px] whitespace-nowrap">{formatDate(p.ordered_at)}</td>
+                                        <td className="p-3 font-mono text-[11px] font-bold">{p.order_number}</td>
                                         <td className="p-3 font-medium dark:text-gray-200">
                                             {p.patient.first_name} {p.patient.last_name}
                                         </td>
-                                        <td className="p-3">
-                                            <div className="font-mono text-xs">{p.order_number}</div>
-                                            <div className="text-[10px] text-gray-400">{formatDate(p.ordered_at)}</div>
+                                        <td className="p-3 text-[11px] max-w-[200px]">
+                                            {p.test?.test_name || 'N/A'}
                                         </td>
-                                        <td className="p-3 text-right">₦{Number(p.price).toLocaleString()}</td>
-                                        <td className="p-3 text-right text-orange-500">₦{Number(p.discount).toLocaleString()}</td>
-                                        <td className="p-3 text-right text-indigo-700 font-black bg-indigo-50/30 dark:bg-indigo-900/10">
-                                            ₦{Number(p.period_payments || 0).toLocaleString()}
+                                        <td className="p-3 text-right font-bold">{currency}{Number(p.price - p.discount).toLocaleString()}</td>
+                                        <td className="p-3 text-right text-indigo-700 font-black bg-indigo-50/30 dark:bg-indigo-900/10 print:hidden">{currency}{Number(p.period_payments || 0).toLocaleString()}
                                         </td>
-                                        <td className="p-3 text-right text-emerald-600 font-bold">₦{Number(p.amount_paid).toLocaleString()}</td>
-                                        <td className="p-3 text-right text-red-500 font-bold">₦{(p.price - p.discount - p.amount_paid).toLocaleString()}</td>
-                                        <td className="p-3 text-center">
+                                        <td className="p-3 text-right text-red-500 font-bold print:hidden">{currency}{(p.price - p.discount - p.amount_paid).toLocaleString()}</td>
+                                        <td className="p-3 text-center print:hidden">
                                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
                                                 p.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                             }`}>
@@ -499,13 +542,28 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                     </tr>
                                 ))}
                             </tbody>
+                            <tfoot className="bg-gray-100 dark:bg-gray-900/80 font-bold">
+                                <tr>
+                                    <td colSpan={4} className="p-3 text-right uppercase text-xs tracking-wider">Total Amount:</td>
+                                    <td className="p-3 text-right text-base border-t-2 border-double border-gray-400">{currency}{sourcePatients.reduce((acc, curr) => acc + (Number(curr.price) - Number(curr.discount)), 0).toLocaleString()}
+                                    </td>
+                                    <td colSpan={3} className="print:hidden"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
-                    {/* Summary Footer */}
                     <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg flex justify-between items-center border dark:border-gray-700">
-                        <span className="text-sm font-bold text-gray-500 uppercase">Period Total for Source:</span>
-                        <span className="text-xl font-black text-indigo-600">
-                            ₦{sourcePatients.reduce((acc, curr) => acc + Number(curr.period_payments || 0), 0).toLocaleString()}
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-500 uppercase">Total Outstanding Balance:</span>
+                            <span className="text-xs text-gray-400">(Amount yet to be paid)</span>
+                        </div>
+                        <span className="text-2xl font-black text-red-500">{currency}{sourcePatients.reduce((acc, curr) => acc + (curr.price - curr.discount - curr.amount_paid), 0).toLocaleString()}
+                        </span>
+                    </div>
+
+                    <div className="mt-2 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex justify-between items-center border border-indigo-100 dark:border-indigo-800">
+                        <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase">Period Total for Source (Received):</span>
+                        <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{currency}{sourcePatients.reduce((acc, curr) => acc + Number(curr.period_payments || 0), 0).toLocaleString()}
                         </span>
                     </div>
                 </div>
@@ -529,7 +587,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y dark:divide-gray-700">
-                                        {expenses.length > 0 ? expenses.map((expense) => (
+                                        {expenses.data.length > 0 ? expenses.data.map((expense) => (
                                             <tr key={expense.id} className="text-sm hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                                 <td className="py-3 px-2 text-gray-500 whitespace-nowrap">
                                                     {formatDate(expense.entry_date)}
@@ -538,8 +596,7 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                                     <div className="font-bold text-gray-800 dark:text-gray-200">{expense.category}</div>
                                                     <div className="text-xs text-gray-400 truncate max-w-[150px]">{expense.description}</div>
                                                 </td>
-                                                <td className="py-3 px-2 text-right font-bold text-rose-600">
-                                                    ₦{Number(expense.amount).toLocaleString()}
+                                                <td className="py-3 px-2 text-right font-bold text-rose-600">{currency}{Number(expense.amount).toLocaleString()}
                                                 </td>
                                                 <td className="py-3 px-2 text-right">
                                                     <button
@@ -557,6 +614,9 @@ export default function Index({ auth, stats, expenses, incomeData, filters }: Pr
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                            <div className="p-4 border-t dark:border-gray-700">
+                                <Pagination links={expenses.links} />
                             </div>
                         </div>
                     </div>

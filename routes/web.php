@@ -53,15 +53,19 @@ Route::middleware('auth')->group(function () {
             // Test Order Status Updates
             Route::patch('test-orders/{testOrder}/status', [\App\Http\Controllers\TestOrderController::class , 'updateStatus'])->name('test-orders.update-status');
             Route::patch('test-orders/batch/{orderNumber}/status', [\App\Http\Controllers\TestOrderController::class , 'updateBatchStatus'])
-                ->name('test-orders.update-batch-status');
-            Route::get('test-orders/batch/{orderNumber}', [\App\Http\Controllers\TestOrderController::class , 'show'])
-                ->name('test-orders.show-batch');
-            Route::delete('test-orders/batch/{orderNumber}', [\App\Http\Controllers\TestOrderController::class , 'destroyBatch'])
-                ->name('test-orders.destroy-batch');
+                ->name('test-orders.update-batch-status')->where('orderNumber', '.*');
+            Route::get('test-orders/batch/{orderNumber}/invoice', [\App\Http\Controllers\TestOrderController::class , 'generateInvoice'])
+                ->name('test-orders.invoice')->where('orderNumber', '.*');
+            Route::get('test-orders/batch/{orderNumber}/invoice/view', [\App\Http\Controllers\TestOrderController::class , 'viewInvoice'])
+                ->name('test-orders.invoice-view')->where('orderNumber', '.*');
             Route::get('test-orders/batch/{orderNumber}/edit', [\App\Http\Controllers\TestOrderController::class , 'edit'])
-                ->name('test-orders.edit-batch');
+                ->name('test-orders.edit-batch')->where('orderNumber', '.*');
             Route::put('test-orders/batch/{orderNumber}', [\App\Http\Controllers\TestOrderController::class , 'updateBatch'])
-                ->name('test-orders.update-batch');
+                ->name('test-orders.update-batch')->where('orderNumber', '.*');
+            Route::delete('test-orders/batch/{orderNumber}', [\App\Http\Controllers\TestOrderController::class , 'destroyBatch'])
+                ->name('test-orders.destroy-batch')->where('orderNumber', '.*');
+            Route::get('test-orders/batch/{orderNumber}', [\App\Http\Controllers\TestOrderController::class , 'show'])
+                ->name('test-orders.show-batch')->where('orderNumber', '.*');
 
             Route::group([], function () {
                     Route::get('staff/check-email', [\App\Http\Controllers\StaffController::class , 'checkEmail'])->name('staff.check-email');
@@ -76,6 +80,9 @@ Route::middleware('auth')->group(function () {
                     Route::post('departments', [\App\Http\Controllers\DepartmentController::class , 'store'])->name('departments.store');
                     Route::delete('departments/{department}', [\App\Http\Controllers\DepartmentController::class , 'destroy'])->name('departments.destroy');
 
+                    // Roles
+                    Route::resource('roles', \App\Http\Controllers\RoleController::class);
+
                     // Hospitals & Doctors
                     Route::get('hospitals/{hospital}/account', [\App\Http\Controllers\HospitalController::class , 'account'])->name('hospitals.account');
                     Route::resource('hospitals', \App\Http\Controllers\HospitalController::class);
@@ -83,6 +90,7 @@ Route::middleware('auth')->group(function () {
                     Route::resource('patient-classifications', \App\Http\Controllers\PatientClassificationController::class);
                     Route::resource('hmos', \App\Http\Controllers\HmoController::class);
                     Route::resource('test-hmo-prices', \App\Http\Controllers\TestHmoPriceController::class);
+                    Route::resource('sensitivities', \App\Http\Controllers\SensitivityController::class)->except(['create', 'edit', 'show']);
 
                     // Accounting
                     Route::get('accounting', [\App\Http\Controllers\AccountingController::class , 'index'])->name('accounting.index');

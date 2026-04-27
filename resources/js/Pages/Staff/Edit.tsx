@@ -16,18 +16,18 @@ interface Department {
     name: string;
 }
 
-export default function Edit({ auth, user, departments: initialDepartments }: PageProps<{ user: UserType; departments: Department[] }>) {
+interface Role {
+    id: number;
+    name: string;
+    permissions: string[];
+}
+
+export default function Edit({ auth, user, departments: initialDepartments, roles }: PageProps<{ user: UserType; departments: Department[]; roles: Role[] }>) {
     const [departments, setDepartments] = useState<Department[]>(initialDepartments || []);
     const [newDeptName, setNewDeptName] = useState('');
     const [addingDept, setAddingDept] = useState(false);
 
-    const roles = [
-        { value: 'admin', label: 'Administrator' },
-        { value: 'supervisor', label: 'Supervisor' },
-        { value: 'pathologist', label: 'Pathologist' },
-        { value: 'lab_tech', label: 'Lab Technician' },
-        { value: 'receptionist', label: 'Receptionist' },
-    ];
+
 
     const PERMISSIONS = [
         { id: 'dashboard.view', label: 'View Dashboard', category: 'General' },
@@ -39,6 +39,8 @@ export default function Edit({ auth, user, departments: initialDepartments }: Pa
         { id: 'results.manage', label: 'Manage Results', category: 'Tests' },
         { id: 'results.verify', label: 'Verify Results (with Signature)', category: 'Tests' },
         { id: 'billing.manage', label: 'Manage Billing', category: 'Financial' },
+        { id: 'accounting.view', label: 'View Accounting Dashboard', category: 'Financial' },
+        { id: 'accounting.manage_income_source', label: 'Manage Income Source', category: 'Financial' },
         { id: 'staff.manage', label: 'Manage Staff', category: 'Administrative' },
         { id: 'lab.settings', label: 'Lab Settings', category: 'Administrative' },
         { id: 'audit.view', label: 'View Audit Logs', category: 'Administrative' },
@@ -181,10 +183,18 @@ export default function Edit({ auth, user, departments: initialDepartments }: Pa
                                             id="role"
                                             className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
                                             value={data.role}
-                                            onChange={(e) => setData('role', e.target.value)}
+                                            onChange={(e) => {
+                                                const selectedRole = roles.find(r => r.name === e.target.value);
+                                                setData((prev) => ({
+                                                    ...prev,
+                                                    role: e.target.value,
+                                                    permissions: selectedRole ? (selectedRole.permissions || []) : prev.permissions,
+                                                }));
+                                            }}
                                         >
+                                            <option value="" disabled>Select a role...</option>
                                             {roles.map(role => (
-                                                <option key={role.value} value={role.value}>{role.label}</option>
+                                                <option key={role.id} value={role.name}>{role.name}</option>
                                             ))}
                                         </select>
                                         <InputError message={errors.role} className="mt-2" />

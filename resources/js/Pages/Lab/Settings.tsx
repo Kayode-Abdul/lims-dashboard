@@ -17,6 +17,9 @@ interface Lab {
     header_url?: string;
     footer_url?: string;
     sync_url: string | null;
+    currency: string | null;
+    pdf_margin_top: string;
+    web_margin_top: string;
 }
 
 export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; status?: string }>) {
@@ -42,7 +45,10 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
         email: lab.email || '',
         phone: lab.phone || '',
         address: lab.address || '',
+        currency: lab.currency || '₦',
         sync_url: lab.sync_url || '',
+        pdf_margin_top: lab.pdf_margin_top || '1.20',
+        web_margin_top: lab.web_margin_top || '1.80',
         header_image: null as File | null,
         footer_image: null as File | null,
     });
@@ -128,6 +134,32 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
                                     <InputError message={errors.address} className="mt-2" />
                                 </div>
 
+                                <div>
+                                    <InputLabel htmlFor="currency" value="Lab Currency" />
+                                    <select
+                                        id="currency"
+                                        className="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                        value={data.currency}
+                                        onChange={(e) => setData('currency', e.target.value)}
+                                    >
+                                        <option value="₦">Naira (₦)</option>
+                                        <option value="$">US Dollar ($)</option>
+                                        <option value="£">British Pound (£)</option>
+                                        <option value="€">Euro (€)</option>
+                                        <option value="GHS">Ghanaian Cedi (GHS)</option>
+                                        <option value="KES">Kenyan Shilling (KES)</option>
+                                        <option value="ZAR">South African Rand (ZAR)</option>
+                                        <option value="CFA">CFA Franc (CFA)</option>
+                                        <option value="RWF">Rwandan Franc (RWF)</option>
+                                        <option value="UGX">Ugandan Shilling (UGX)</option>
+                                        <option value="TZS">Tanzanian Shilling (TZS)</option>
+                                        <option value="₹">Indian Rupee (₹)</option>
+                                        <option value="CAD">Canadian Dollar (CAD)</option>
+                                        <option value="AUD">Australian Dollar (AUD)</option>
+                                    </select>
+                                    <InputError message={errors.currency} className="mt-2" />
+                                </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <InputLabel htmlFor="header_image" value="Result PDF Header Image" />
@@ -175,6 +207,39 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
                                                 <img src={lab.footer_url} alt="Footer" className="h-16 object-contain border rounded" />
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="col-span-full">
+                                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-widest mb-1">Header Spacing (Adjustment)</h3>
+                                        <p className="text-xs text-gray-500 mb-3">Adjust the space at the top of results if your pre-printed header is taller or shorter than average.</p>
+                                    </div>
+                                    <div>
+                                        <InputLabel htmlFor="pdf_margin_top" value="PDF Margin Top (Inches)" />
+                                        <TextInput
+                                            id="pdf_margin_top"
+                                            type="number"
+                                            step="0.05"
+                                            className="mt-1 block w-full"
+                                            value={data.pdf_margin_top}
+                                            onChange={(e) => setData('pdf_margin_top', e.target.value)}
+                                        />
+                                        <p className="mt-1 text-[10px] text-gray-500 italic">Default: 1.20 | Recommended: 1.0 - 1.5</p>
+                                        <InputError message={errors.pdf_margin_top} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="web_margin_top" value="Web Print Top (CM)" />
+                                        <TextInput
+                                            id="web_margin_top"
+                                            type="number"
+                                            step="0.05"
+                                            className="mt-1 block w-full"
+                                            value={data.web_margin_top}
+                                            onChange={(e) => setData('web_margin_top', e.target.value)}
+                                        />
+                                        <p className="mt-1 text-[10px] text-gray-500 italic">Default: 1.80 | Recommended: 1.5 - 2.5</p>
+                                        <InputError message={errors.web_margin_top} className="mt-2" />
                                     </div>
                                 </div>
 

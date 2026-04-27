@@ -6,7 +6,14 @@ import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { Building2, ChevronDown } from 'lucide-react';
 import Toast from '@/Components/Toast';
-import { PageProps } from '@/types';
+import { PageProps, User } from '@/types';
+
+// Helper for permissions (User type needs to be able to handle permissions)
+const hasPermission = (user: any, permission: string) => {
+    if (user.is_super_admin) return true;
+    if (['admin', 'lab_admin'].includes(user.role)) return true; // Keep admin defaults
+    return user.permissions?.includes(permission);
+};
 
 export default function Authenticated({
     header,
@@ -32,6 +39,15 @@ export default function Authenticated({
             setToast({ message: flash.message, type: 'info' });
         }
     }, [flash]);
+
+    // Expose toast globally
+    useEffect(() => {
+        (window as any).toast = {
+            success: (msg: string) => setToast({ message: msg, type: 'success' }),
+            error: (msg: string) => setToast({ message: msg, type: 'error' }),
+            info: (msg: string) => setToast({ message: msg, type: 'info' }),
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -138,6 +154,9 @@ export default function Authenticated({
                                                 <Dropdown.Link href={route('tests.index')}>
                                                     Test Catalog
                                                 </Dropdown.Link>
+                                                <Dropdown.Link href={route('sensitivities.index')}>
+                                                    Sensitivities
+                                                </Dropdown.Link>
                                             </>
                                         )}
                                     </Dropdown.Content>
@@ -157,7 +176,6 @@ export default function Authenticated({
                                 </NavLink>
                                 {(user.role === 'admin' || user.role === 'supervisor' || user.role === 'lab_admin' || user.is_super_admin) && (
                                     <>
-                                        {/* Referrals & HMOs Dropdown */}
                                         <Dropdown>
                                             <Dropdown.Trigger>
                                                 <button className={`inline-flex items-center px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none ${route().current('hospitals.*') ||
@@ -193,26 +211,34 @@ export default function Authenticated({
                                                 </Dropdown.Link>
                                             </Dropdown.Content>
                                         </Dropdown>
-
-                                        <NavLink
-                                            href={route('staff.index')}
-                                            active={route().current('staff.*')}
-                                        >
-                                            Staff
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('audit-logs.index')}
-                                            active={route().current('audit-logs.*')}
-                                        >
-                                            Audit Logs
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('lab.settings.edit')}
-                                            active={route().current('lab.settings.*')}
-                                        >
-                                            Lab settings
-                                        </NavLink>
                                     </>
+                                )}
+
+                                {hasPermission(user, 'staff.manage') && (
+                                    <NavLink
+                                        href={route('staff.index')}
+                                        active={route().current('staff.*')}
+                                    >
+                                        Staff
+                                    </NavLink>
+                                )}
+                                
+                                {hasPermission(user, 'audit.view') && (
+                                    <NavLink
+                                        href={route('audit-logs.index')}
+                                        active={route().current('audit-logs.*')}
+                                    >
+                                        Audit Logs
+                                    </NavLink>
+                                )}
+                                
+                                {hasPermission(user, 'lab.settings') && (
+                                    <NavLink
+                                        href={route('lab.settings.edit')}
+                                        active={route().current('lab.settings.*')}
+                                    >
+                                        Lab settings
+                                    </NavLink>
                                 )}
 
                                 {user.is_super_admin && (
@@ -363,9 +389,19 @@ export default function Authenticated({
                                 <ResponsiveNavLink href={route('doctors.index')} active={route().current('doctors.*')}>Doctors</ResponsiveNavLink>
                                 <ResponsiveNavLink href={route('hmos.index')} active={route().current('hmos.*')}>HMOs</ResponsiveNavLink>
                                 <ResponsiveNavLink href={route('patient-classifications.index')} active={route().current('patient-classifications.*')}>Classifications</ResponsiveNavLink>
-                                <ResponsiveNavLink href={route('staff.index')} active={route().current('staff.*')}>Staff</ResponsiveNavLink>
-                                <ResponsiveNavLink href={route('lab.settings.edit')} active={route().current('lab.settings.*')}>Lab Settings</ResponsiveNavLink>
                             </>
+                        )}
+                        
+                        {hasPermission(user, 'staff.manage') && (
+                            <ResponsiveNavLink href={route('staff.index')} active={route().current('staff.*')}>Staff</ResponsiveNavLink>
+                        )}
+                        
+                        {hasPermission(user, 'audit.view') && (
+                            <ResponsiveNavLink href={route('audit-logs.index')} active={route().current('audit-logs.*')}>Audit Logs</ResponsiveNavLink>
+                        )}
+                        
+                        {hasPermission(user, 'lab.settings') && (
+                            <ResponsiveNavLink href={route('lab.settings.edit')} active={route().current('lab.settings.*')}>Lab Settings</ResponsiveNavLink>
                         )}
                     </div>
 

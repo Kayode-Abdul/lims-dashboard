@@ -19,9 +19,11 @@ class TestOrder extends Model
     protected $fillable = [
         'order_number',
         'patient_id',
+        'patient_type',
         'test_id',
         'hospital_id',
         'doctor_id',
+        'hmo_id',
         'ordered_by',
         'ordered_at',
         'price',
