@@ -13,6 +13,7 @@ class SpecimenController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('samples.collect');
         $labId = auth()->user()->lab_id;
         $query = Specimen::whereHas('testOrder', function($q) use ($labId) {
             $q->where('lab_id', $labId);
@@ -50,6 +51,7 @@ class SpecimenController extends Controller
 
     public function store(StoreSpecimenRequest $request)
     {
+        $this->authorize('samples.collect');
         $validated = $request->validated();
 
         // Generate Unique Sample ID: SMP-YYYYMMDD-XXXX
@@ -71,6 +73,7 @@ class SpecimenController extends Controller
 
     public function update(Request $request, Specimen $specimen)
     {
+        $this->authorize('samples.collect');
         $validated = $request->validate([
             'status' => 'required|string|in:collected,processing,analyzed,stored,discarded',
             'storage_location' => 'nullable|string',
@@ -84,6 +87,7 @@ class SpecimenController extends Controller
 
     public function destroy(Specimen $specimen)
     {
+        $this->authorize('samples.collect');
         $specimen->delete();
         return redirect()->back()->with('message', 'Sample record deleted.');
     }

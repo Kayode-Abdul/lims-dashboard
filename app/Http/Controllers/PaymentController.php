@@ -14,6 +14,8 @@ class PaymentController extends Controller
 {
     public function storeBatch(Request $request)
     {
+        $this->authorize('billing.manage');
+
         $validated = $request->validate([
             'order_number' => 'required|string|exists:test_orders,order_number',
             'amount_paid' => 'required|numeric|min:0.01',
@@ -79,6 +81,8 @@ class PaymentController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('billing.manage');
+
         $query = Payment::with(['testOrder.patient', 'testOrder.test', 'processedBy']);
 
         if ($request->filled('search')) {
@@ -109,6 +113,8 @@ class PaymentController extends Controller
 
     public function store(StorePaymentRequest $request)
     {
+        $this->authorize('billing.manage');
+
         $validated = $request->validated();
 
         DB::transaction(function () use ($validated) {
@@ -140,6 +146,8 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
+        $this->authorize('billing.manage');
+
         DB::transaction(function () use ($payment) {
             $order = $payment->testOrder;
 

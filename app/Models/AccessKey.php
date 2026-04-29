@@ -4,8 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\Auditable;
+
 class AccessKey extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'key',
         'lab_id',

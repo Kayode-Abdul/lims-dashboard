@@ -719,6 +719,13 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                             </div>
                                         </>
                                     )}
+                                    <div className="flex items-center text-sm pt-2 border-t dark:border-gray-700 mt-2">
+                                        <User className="h-4 w-4 mr-2 text-indigo-400" />
+                                        <span className="text-gray-500 mr-2">Created By:</span>
+                                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                                            {orderedBy ? `${orderedBy.first_name} ${orderedBy.last_name}` : 'N/A'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

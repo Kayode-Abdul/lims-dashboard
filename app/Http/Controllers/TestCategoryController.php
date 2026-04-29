@@ -16,6 +16,7 @@ class TestCategoryController extends Controller
      */
     public function index(Request $request): Response
     {
+        $this->authorize('catalog.manage');
         $query = TestCategory::query();
 
         if ($request->has('search')) {
@@ -37,9 +38,7 @@ class TestCategoryController extends Controller
      */
     public function store(StoreTestCategoryRequest $request)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to create test categories.');
-        }
+        $this->authorize('catalog.manage');
 
         $category = TestCategory::create($request->validated());
 
@@ -56,9 +55,7 @@ class TestCategoryController extends Controller
      */
     public function update(UpdateTestCategoryRequest $request, TestCategory $testCategory)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to edit test categories.');
-        }
+        $this->authorize('catalog.manage');
 
         $testCategory->update($request->validated());
 
@@ -71,9 +68,7 @@ class TestCategoryController extends Controller
      */
     public function destroy(TestCategory $testCategory)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to delete test categories.');
-        }
+        $this->authorize('catalog.manage');
 
         // Add check for dependent tests here later
         $testCategory->delete();

@@ -1,11 +1,11 @@
-import { useEffect, FormEventHandler } from 'react';
+import { useEffect, FormEventHandler, useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Building2, UserCircle, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
+import { Building2, UserCircle, ShieldCheck, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 
 export default function Onboarding() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -18,6 +18,8 @@ export default function Onboarding() {
         password: '',
         password_confirmation: '',
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         return () => {
@@ -151,31 +153,49 @@ export default function Onboarding() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <InputLabel htmlFor="password" value="Password" />
-                            <TextInput
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) => setData('password', e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <TextInput
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={data.password}
+                                    className="mt-1 block w-full pr-10"
+                                    autoComplete="new-password"
+                                    onChange={(e) => setData('password', e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                             <InputError message={errors.password} className="mt-2" />
                         </div>
 
                         <div>
                             <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                            <TextInput
-                                id="password_confirmation"
-                                type="password"
-                                name="password_confirmation"
-                                value={data.password_confirmation}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <TextInput
+                                    id="password_confirmation"
+                                    type={showPassword ? "text" : "password"}
+                                    name="password_confirmation"
+                                    value={data.password_confirmation}
+                                    className="mt-1 block w-full pr-10"
+                                    autoComplete="new-password"
+                                    onChange={(e) => setData('password_confirmation', e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                             <InputError message={errors.password_confirmation} className="mt-2" />
                         </div>
                     </div>

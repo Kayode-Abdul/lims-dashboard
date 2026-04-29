@@ -21,6 +21,7 @@ class TestResultController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('orders.view');
         // Query to get unique order_numbers that have at least one test result
         $query = TestOrder::has('result')
             ->with(['patient'])
@@ -77,6 +78,7 @@ class TestResultController extends Controller
 
     public function show(string $orderNumber)
     {
+        $this->authorize('orders.view');
         $orderNumber = str_replace('-', '/', $orderNumber);
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
@@ -97,6 +99,7 @@ class TestResultController extends Controller
 
     public function store(StoreTestResultRequest $request)
     {
+        $this->authorize('results.enter');
         $validated = $request->validated();
         $testOrder = TestOrder::with('test')->findOrFail($validated['test_order_id']);
 
@@ -143,7 +146,7 @@ class TestResultController extends Controller
                 $result->testOrder->update(['status' => 'completed']);
             }
 
-            return redirect()->route('test-orders.show-batch', str_replace('/', '-', $testOrder->order_number))
+            return redirect()->route('test-orders.show-batch', $testOrder->order_number)
                 ->with('message', 'Result recorded successfully.');
         } catch (\Exception $e) {
             Log::error("Failed to save test result: " . $e->getMessage());
@@ -165,6 +168,7 @@ class TestResultController extends Controller
 
     public function downloadPdf(string $orderNumber)
     {
+        $this->authorize('orders.view');
         $orderNumber = str_replace('-', '/', $orderNumber);
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
@@ -220,6 +224,7 @@ class TestResultController extends Controller
 
     public function generateZip(string $orderNumber)
     {
+        $this->authorize('orders.view');
         $patient = TestOrder::where('order_number', $orderNumber)->first()->patient;
         $patientName = Str::slug($patient->first_name . ' ' . $patient->last_name, '_');
         $zipName = "Lab_Report_{$patientName}.zip";
@@ -275,6 +280,7 @@ class TestResultController extends Controller
 
     public function logPrint(Request $request)
     {
+        $this->authorize('orders.view');
         $request->validate([
             'order_number' => 'required|string',
             'result_id' => 'required|integer'
@@ -296,6 +302,7 @@ class TestResultController extends Controller
 
     public function email(Request $request, string $orderNumber)
     {
+        $this->authorize('orders.view');
         $orderNumber = str_replace('-', '/', $orderNumber);
         $request->validate([
             'email' => 'required|email',

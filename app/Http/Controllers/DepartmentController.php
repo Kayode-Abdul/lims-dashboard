@@ -9,6 +9,7 @@ class DepartmentController extends Controller
 {
     public function index()
     {
+        $this->authorize('lab.settings');
         $labId = auth()->user()->lab_id;
 
         return Department::where('lab_id', $labId)
@@ -19,6 +20,7 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('lab.settings');
         $request->validate([
             'name' => 'required|string|max:100',
         ]);
@@ -38,9 +40,10 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department)
     {
+        $this->authorize('lab.settings');
         $labId = auth()->user()->lab_id;
 
-        if ($department->lab_id !== $labId) {
+        if (!auth()->user()->is_super_admin && $department->lab_id !== $labId) {
             abort(403);
         }
 

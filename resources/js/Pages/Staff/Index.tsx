@@ -9,6 +9,7 @@ import InputError from '@/Components/InputError';
 import Checkbox from '@/Components/Checkbox';
 import { Search, Edit, Trash2, Eye, Phone, Mail, User, ShieldCheck, Activity, Plus } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
+import { Eye as EyeIcon, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import { Shield } from 'lucide-react';
 
@@ -80,6 +81,8 @@ export default function Index({ auth, staff, departments: initialDepartments, fi
         permissions: [] as string[],
         signature: null as File | null,
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const [isEditing, setIsEditing] = useState(false);
     const [memberToEdit, setMemberToEdit] = useState<StaffMember | null>(null);
@@ -266,27 +269,45 @@ export default function Index({ auth, staff, departments: initialDepartments, fi
                                             <>
                                                 <div>
                                                     <InputLabel htmlFor="password" value="Password" />
-                                                    <TextInput
-                                                        id="password"
-                                                        type="password"
-                                                        className="mt-1 block w-full"
-                                                        value={data.password}
-                                                        onChange={(e) => setData('password', e.target.value)}
-                                                        required
-                                                    />
+                                                    <div className="relative">
+                                                        <TextInput
+                                                            id="password"
+                                                            type={showPassword ? "text" : "password"}
+                                                            className="mt-1 block w-full pr-10"
+                                                            value={data.password}
+                                                            onChange={(e) => setData('password', e.target.value)}
+                                                            required
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                        >
+                                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                                                        </button>
+                                                    </div>
                                                     <InputError message={errors.password} className="mt-2" />
                                                 </div>
 
                                                 <div>
                                                     <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                                                    <TextInput
-                                                        id="password_confirmation"
-                                                        type="password"
-                                                        className="mt-1 block w-full"
-                                                        value={data.password_confirmation}
-                                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                                        required
-                                                    />
+                                                    <div className="relative">
+                                                        <TextInput
+                                                            id="password_confirmation"
+                                                            type={showPassword ? "text" : "password"}
+                                                            className="mt-1 block w-full pr-10"
+                                                            value={data.password_confirmation}
+                                                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                                                            required
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                        >
+                                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                                                        </button>
+                                                    </div>
                                                     <InputError message={errors.password_confirmation} className="mt-2" />
                                                 </div>
                                             </>

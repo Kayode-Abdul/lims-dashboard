@@ -15,6 +15,8 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('dashboard.view');
+
         $user = auth()->user();
         $canViewStats = $user->is_super_admin || 
                         in_array($user->role, ['admin', 'lab_admin']) || 

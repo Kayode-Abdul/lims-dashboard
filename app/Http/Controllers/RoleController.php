@@ -72,8 +72,8 @@ class RoleController extends Controller
     {
         $this->authorize('lab.settings');
 
-        // Ensure role belongs to current lab
-        if ($role->lab_id !== auth()->user()->lab_id) {
+        // Ensure role belongs to current lab (Super Admin bypass)
+        if (!auth()->user()->is_super_admin && $role->lab_id !== auth()->user()->lab_id) {
             abort(403);
         }
 
@@ -89,7 +89,7 @@ class RoleController extends Controller
     {
         $this->authorize('lab.settings');
 
-        if ($role->lab_id !== auth()->user()->lab_id) {
+        if (!auth()->user()->is_super_admin && $role->lab_id !== auth()->user()->lab_id) {
             abort(403);
         }
 
@@ -121,7 +121,7 @@ class RoleController extends Controller
     {
         $this->authorize('lab.settings');
 
-        if ($role->lab_id !== auth()->user()->lab_id) {
+        if (!auth()->user()->is_super_admin && $role->lab_id !== auth()->user()->lab_id) {
             abort(403);
         }
 

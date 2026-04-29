@@ -10,6 +10,7 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('audit.view');
         $query = AuditLog::with('user');
 
         if ($request->filled('table')) {

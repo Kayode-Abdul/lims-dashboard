@@ -17,6 +17,7 @@ class LabSettingsController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $this->authorize('lab.settings');
         $user = $request->user();
         $lab = Lab::find($user->lab_id);
 
@@ -36,6 +37,7 @@ class LabSettingsController extends Controller
      */
     public function update(Request $request)
     {
+        $this->authorize('lab.settings');
         $lab = $request->user()->lab;
 
         if (!$lab) {

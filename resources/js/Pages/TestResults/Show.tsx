@@ -449,7 +449,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                     }`}>
                                                         {res.test_order?.test?.test_name}
                                                     </td>
-                                                    <td className={`px-6 py-2 whitespace-nowrap text-xs font-bold flex flex-col items-start gap-1 ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
+                                                    <td className={`px-6 py-2 whitespace-nowrap text-xs font-bold ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
                                                         <div className="flex items-center gap-2">
                                                             {res.result_value?.replace(/ \((High|Low)\)/, '') || ''}
 
@@ -459,16 +459,6 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                                 </span>
                                                             )}
                                                         </div>
-
-                                                        {res.sensitivities && Array.isArray(res.sensitivities) && res.sensitivities.length > 0 && (
-                                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                                {res.sensitivities.map((s: any, idx: number) => (
-                                                                    <span key={idx} className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 font-mono">
-                                                                        {s.type === 'number' ? `[${'+'.repeat(parseInt(s.value) || 0)}]` : `[${s.value}]`}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        )}
                                                     </td>
                                                     <td className="px-6 py-2 whitespace-nowrap text-xs font-bold text-indigo-800 dark:text-indigo-200 text-right">
                                                         {res.reference_range || ''} {res.units || ''}
@@ -552,6 +542,39 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                             </React.Fragment>
                                         );
                                         })}
+                                        {/* Aggregated Sensitivity Row */}
+                                        {(() => {
+                                            const allSensitivities: any[] = [];
+                                            const seen = new Set<string>();
+                                            results.forEach((res) => {
+                                                if (res.sensitivities && Array.isArray(res.sensitivities)) {
+                                                    res.sensitivities.forEach((s: any) => {
+                                                        const label = s.name || s.sensitivity_name || '';
+                                                        const val = s.type === 'number'
+                                                            ? '+'.repeat(parseInt(s.value) || 0)
+                                                            : (s.value || '');
+                                                        const key = `${label}[${val}]`;
+                                                        if (label && !seen.has(key)) {
+                                                            seen.add(key);
+                                                            allSensitivities.push({ label, val });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                            if (allSensitivities.length === 0) return null;
+                                            return (
+                                                <tr className="border-none">
+                                                    <td className="py-2 pr-6 text-xs font-bold text-indigo-900 dark:text-indigo-100 uppercase">Sensitivity</td>
+                                                    <td colSpan={2} className="px-6 py-2 text-xs font-bold text-gray-900">
+                                                        {allSensitivities.map((s, i) => (
+                                                            <span key={i}>
+                                                                {s.label}[{s.val}]{i < allSensitivities.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })()}
                                     </tbody>
                                 </table>
                             </div>

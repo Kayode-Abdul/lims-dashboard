@@ -8,9 +8,11 @@ use App\Traits\Syncable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\Auditable;
+
 class Department extends Model
 {
-    use Syncable, SoftDeletes;
+    use Syncable, SoftDeletes, Auditable;
 
     use HasFactory;
 

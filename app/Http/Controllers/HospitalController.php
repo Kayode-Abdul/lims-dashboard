@@ -9,6 +9,7 @@ class HospitalController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('referrals.manage');
         $hospitals = Hospital::query()
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
@@ -25,9 +26,7 @@ class HospitalController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage hospitals.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -47,9 +46,7 @@ class HospitalController extends Controller
 
     public function update(Request $request, Hospital $hospital)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage hospitals.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -65,9 +62,7 @@ class HospitalController extends Controller
 
     public function destroy(Hospital $hospital)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to delete hospitals.');
-        }
+        $this->authorize('referrals.manage');
 
         $hospital->delete();
 
@@ -76,6 +71,7 @@ class HospitalController extends Controller
 
     public function account(Request $request, Hospital $hospital)
     {
+        $this->authorize('referrals.manage');
         $startDate = $request->get('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', now()->toDateString());
 

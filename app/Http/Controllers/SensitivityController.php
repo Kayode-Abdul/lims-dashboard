@@ -12,6 +12,7 @@ class SensitivityController extends Controller
 {
     public function index()
     {
+        $this->authorize('catalog.manage');
         return Inertia::render('Sensitivities/Index', [
             'sensitivities' => Sensitivity::where('lab_id', Auth::user()->lab_id)->get()
         ]);
@@ -19,6 +20,7 @@ class SensitivityController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('catalog.manage');
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:number,text',
@@ -36,6 +38,7 @@ class SensitivityController extends Controller
 
     public function update(Request $request, Sensitivity $sensitivity)
     {
+        $this->authorize('catalog.manage');
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:number,text',
@@ -50,6 +53,7 @@ class SensitivityController extends Controller
 
     public function destroy(Sensitivity $sensitivity)
     {
+        $this->authorize('catalog.manage');
         $sensitivity->delete();
 
         return redirect()->back()->with('success', 'Sensitivity deleted successfully.');

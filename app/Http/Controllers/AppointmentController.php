@@ -14,6 +14,7 @@ class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('orders.view');
         $query = Appointment::with(['patient', 'test']);
 
         if ($request->has('search')) {
@@ -48,6 +49,7 @@ class AppointmentController extends Controller
 
     public function store(StoreAppointmentRequest $request)
     {
+        $this->authorize('orders.create');
         Appointment::create($request->validated());
 
         return redirect()->route('appointments.index')
@@ -56,6 +58,7 @@ class AppointmentController extends Controller
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
+        $this->authorize('orders.edit');
         $appointment->update($request->validated());
 
         return redirect()->route('appointments.index')
@@ -64,6 +67,7 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
+        $this->authorize('orders.delete');
         $appointment->delete();
 
         return redirect()->route('appointments.index')

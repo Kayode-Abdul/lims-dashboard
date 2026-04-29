@@ -17,6 +17,7 @@ class PatientController extends Controller
      */
     public function index(\Illuminate\Http\Request $request)
     {
+        $this->authorize('patients.view');
         $query = Patient::query()->with(['hospital', 'doctor', 'hmo', 'classification']);
 
         if ($request->has('search')) {
@@ -55,6 +56,7 @@ class PatientController extends Controller
      */
     public function create()
     {
+        $this->authorize('patients.create');
         return \Inertia\Inertia::render('Patients/Create', [
             'hospitals' => Hospital::all(),
             'doctors' => Doctor::all(),
@@ -68,6 +70,7 @@ class PatientController extends Controller
      */
     public function store(StorePatientRequest $request)
     {
+        $this->authorize('patients.create');
         $patient = Patient::create($request->validated());
 
         if ($request->wantsJson()) {
@@ -86,6 +89,7 @@ class PatientController extends Controller
      */
     public function show(Patient $patient)
     {
+        $this->authorize('patients.view');
         $orders = \App\Models\TestOrder::where('patient_id', $patient->id)
             ->with(['test', 'orderedBy'])
             ->select('order_number', 'patient_id')
@@ -128,9 +132,7 @@ class PatientController extends Controller
      */
     public function edit(Patient $patient)
     {
-        if (!auth()->user()->hasPermission('patients.edit')) {
-            return back()->with('error', 'You do not have permission to edit patients.');
-        }
+        $this->authorize('patients.edit');
 
         return \Inertia\Inertia::render('Patients/Edit', [
             'patient' => $patient,
@@ -146,9 +148,7 @@ class PatientController extends Controller
      */
     public function update(UpdatePatientRequest $request, Patient $patient)
     {
-        if (!auth()->user()->hasPermission('patients.edit')) {
-            return back()->with('error', 'You do not have permission to update patients.');
-        }
+        $this->authorize('patients.edit');
 
         $patient->update($request->validated());
 
@@ -161,9 +161,7 @@ class PatientController extends Controller
      */
     public function destroy(Patient $patient)
     {
-        if (!auth()->user()->hasPermission('patients.delete')) {
-            return back()->with('error', 'You do not have permission to delete patient records.');
-        }
+        $this->authorize('patients.delete');
 
         $patient->delete();
 

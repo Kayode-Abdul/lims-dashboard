@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\Auditable;
+
 class Sensitivity extends Model
 {
-    use \App\Traits\HasLab;
+    use \App\Traits\HasLab, Auditable;
 
     protected $fillable = [
         'name',

@@ -18,6 +18,7 @@ class TestOrderController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('orders.view');
         // Get unique order numbers with aggregated data
         $query = TestOrder::query();
 
@@ -129,6 +130,7 @@ class TestOrderController extends Controller
 
     public function show(string $orderNumber)
     {
+        $this->authorize('orders.view');
         // Get all orders with the same order_number (the batch)
         $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'result', 'hospital', 'doctor'])
             ->where('order_number', $orderNumber)
@@ -170,6 +172,7 @@ class TestOrderController extends Controller
 
     public function generateInvoice(string $orderNumber)
     {
+        $this->authorize('orders.view');
         $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'hospital', 'doctor'])
             ->where('order_number', $orderNumber)
             ->get();
@@ -205,6 +208,7 @@ class TestOrderController extends Controller
 
     public function viewInvoice(string $orderNumber)
     {
+        $this->authorize('orders.view');
         $orders = TestOrder::with(['patient.hmo', 'test', 'orderedBy', 'hospital', 'doctor'])
             ->where('order_number', $orderNumber)
             ->get();
@@ -236,6 +240,7 @@ class TestOrderController extends Controller
 
     public function create()
     {
+        $this->authorize('orders.create');
         return Inertia::render('TestOrders/Create', [
             'patients' => Patient::where('is_active', true)->get(['id', 'first_name', 'last_name', 'patient_id', 'patient_type', 'hmo_id', 'hospital_id', 'doctor_id', 'sex', 'phone']),
             'hospitals' => \App\Models\Hospital::where('is_active', true)->get(['id', 'name']),
@@ -259,6 +264,7 @@ class TestOrderController extends Controller
 
     public function store(StoreTestOrderRequest $request)
     {
+        $this->authorize('orders.create');
         $validated = $request->validated();
         // Manually merge sample_type since it might not be in the StoreTestOrderRequest yet
         // Ideally we update the Request class, but for now we trust the controller modification or add it here
@@ -470,6 +476,7 @@ class TestOrderController extends Controller
 
     public function updateStatus(Request $request, TestOrder $testOrder)
     {
+        $this->authorize('orders.edit');
         $request->validate([
             'status' => 'required|in:pending,collected,processing,completed,cancelled',
         ]);
@@ -481,6 +488,7 @@ class TestOrderController extends Controller
 
     public function updateBatchStatus(Request $request, string $orderNumber)
     {
+        $this->authorize('orders.edit');
         $request->validate([
             'status' => 'required|in:pending,collected,processing,completed,cancelled',
         ]);
@@ -493,9 +501,7 @@ class TestOrderController extends Controller
 
     public function edit(string $orderNumber)
     {
-        if (!auth()->user()->hasPermission('orders.edit')) {
-            return back()->with('error', 'You do not have permission to edit orders.');
-        }
+        $this->authorize('orders.edit');
 
         $orders = TestOrder::with(['patient', 'test'])
             ->where('order_number', $orderNumber)
@@ -523,9 +529,7 @@ class TestOrderController extends Controller
 
     public function updateBatch(Request $request, string $orderNumber)
     {
-        if (!auth()->user()->hasPermission('orders.edit')) {
-            return back()->with('error', 'You do not have permission to edit orders.');
-        }
+        $this->authorize('orders.edit');
 
         $validated = $request->validate([
             'test_ids' => 'required|array',
@@ -667,9 +671,7 @@ class TestOrderController extends Controller
 
     public function update(UpdateTestOrderRequest $request, TestOrder $testOrder)
     {
-        if (!auth()->user()->hasPermission('orders.edit')) {
-            return back()->with('error', 'You do not have permission to edit orders.');
-        }
+        $this->authorize('orders.edit');
 
         $testOrder->update($request->validated());
 
@@ -679,9 +681,7 @@ class TestOrderController extends Controller
 
     public function destroy(TestOrder $testOrder)
     {
-        if (!auth()->user()->hasPermission('orders.delete')) {
-            return back()->with('error', 'You do not have permission to delete orders.');
-        }
+        $this->authorize('orders.delete');
 
         $testOrder->delete();
 
@@ -691,9 +691,7 @@ class TestOrderController extends Controller
 
     public function destroyBatch(string $orderNumber)
     {
-        if (!auth()->user()->hasPermission('orders.delete')) {
-            return back()->with('error', 'You do not have permission to delete orders.');
-        }
+        $this->authorize('orders.delete');
 
 
         DB::transaction(function () use ($orderNumber) {

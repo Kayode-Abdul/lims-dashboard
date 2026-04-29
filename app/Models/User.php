@@ -129,11 +129,24 @@ class User extends Authenticatable
             return true;
         }
 
-        // Match frontend logic in AuthenticatedLayout.tsx
-        if (in_array($this->role, ['admin', 'lab_admin', 'supervisor'])) {
+        // Check for administrative roles (case-insensitive)
+        $role = strtolower($this->role ?? '');
+        if (in_array($role, ['admin', 'lab_admin', 'supervisor'])) {
             return true;
         }
 
         return in_array($permission, $this->permissions ?? []);
+    }
+
+    /**
+     * Check if user is an admin or super admin.
+     */
+    public function isAdmin(): bool
+    {
+        if ($this->is_super_admin) {
+            return true;
+        }
+
+        return in_array(strtolower($this->role ?? ''), ['admin', 'lab_admin']);
     }
 }

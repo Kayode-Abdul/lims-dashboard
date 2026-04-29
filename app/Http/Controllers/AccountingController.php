@@ -19,6 +19,8 @@ class AccountingController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('accounting.view');
+
         $labId = auth()->user()->lab_id;
         $startDate = $request->get('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', now()->toDateString());
@@ -118,9 +120,7 @@ class AccountingController extends Controller
 
     public function storeExpense(Request $request)
     {
-        if (!auth()->user()->hasPermission('expenses.manage')) {
-            return back()->with('error', 'You do not have permission to record expenses.');
-        }
+        $this->authorize('expenses.manage');
 
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
@@ -140,6 +140,7 @@ class AccountingController extends Controller
 
     public function getSourcePatients(Request $request)
     {
+        $this->authorize('accounting.view');
         $labId = auth()->user()->lab_id;
         $sourceType = $request->source_type;
         $sourceName = $request->source_name;
@@ -217,10 +218,8 @@ class AccountingController extends Controller
 
     public function batchPaySource(Request $request)
     {
-        if (!auth()->user()->hasPermission('billing.manage')) {
-            return back()->with('error', 'You do not have permission to manage billing.');
-        }
-
+        $this->authorize('billing.manage');
+        
         $validated = $request->validate([
             'source_type' => 'required|string',
             'source_name' => 'required|string',
@@ -326,9 +325,7 @@ class AccountingController extends Controller
 
     public function destroyExpense(Expense $expense)
     {
-        if (!auth()->user()->hasPermission('expenses.manage')) {
-            return back()->with('error', 'You do not have permission to delete expenses.');
-        }
+        $this->authorize('expenses.manage');
 
         $expense->delete();
 

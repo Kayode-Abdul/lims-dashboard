@@ -6,6 +6,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function DeleteUserForm({
     className = '',
@@ -13,6 +14,7 @@ export default function DeleteUserForm({
     className?: string;
 }) {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const passwordInput = useRef<HTMLInputElement>(null);
 
     const {
@@ -88,19 +90,28 @@ export default function DeleteUserForm({
                             className="sr-only"
                         />
 
-                        <TextInput
-                            id="password"
-                            type="password"
-                            name="password"
-                            ref={passwordInput}
-                            value={data.password}
-                            onChange={(e) =>
-                                setData('password', e.target.value)
-                            }
-                            className="mt-1 block w-3/4"
-                            isFocused
-                            placeholder="Password"
-                        />
+                        <div className="relative w-3/4">
+                            <TextInput
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                ref={passwordInput}
+                                value={data.password}
+                                onChange={(e) =>
+                                    setData('password', e.target.value)
+                                }
+                                className="mt-1 block w-full pr-10"
+                                isFocused
+                                placeholder="Password"
+                            />
+                            <button
+                                type="button"
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
 
                         <InputError
                             message={errors.password}

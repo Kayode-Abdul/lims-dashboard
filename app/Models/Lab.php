@@ -7,9 +7,11 @@ use App\Traits\Syncable;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\Auditable;
+
 class Lab extends Model
 {
-    use Syncable, SoftDeletes;
+    use Syncable, SoftDeletes, Auditable;
 
     protected $fillable = [
         'name',

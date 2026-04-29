@@ -9,6 +9,7 @@ class HmoController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('hmos.manage');
         $hmos = Hmo::query()
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
@@ -25,9 +26,7 @@ class HmoController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermission('hmos.manage')) {
-            return back()->with('error', 'You do not have permission to manage HMOs.');
-        }
+        $this->authorize('hmos.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -45,9 +44,7 @@ class HmoController extends Controller
 
     public function update(Request $request, Hmo $hmo)
     {
-        if (!auth()->user()->hasPermission('hmos.manage')) {
-            return back()->with('error', 'You do not have permission to manage HMOs.');
-        }
+        $this->authorize('hmos.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -61,9 +58,7 @@ class HmoController extends Controller
 
     public function destroy(Hmo $hmo)
     {
-        if (!auth()->user()->hasPermission('hmos.manage')) {
-            return back()->with('error', 'You do not have permission to delete HMOs.');
-        }
+        $this->authorize('hmos.manage');
 
         $hmo->delete();
 

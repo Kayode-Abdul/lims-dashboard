@@ -30,6 +30,7 @@ class StoreTestResultRequest extends FormRequest
             'is_abnormal' => 'boolean',
             'notes' => 'nullable|string',
             'subtest_results' => 'nullable|array',
+            'sensitivities' => 'nullable|array',
         ];
     }
 }

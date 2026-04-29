@@ -9,6 +9,7 @@ class TestHmoPriceController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('hmos.manage');
         $prices = TestHmoPrice::with(['test', 'hmo'])
             ->when($request->test_id, function ($query, $testId) {
                 $query->where('test_id', $testId);
@@ -25,6 +26,7 @@ class TestHmoPriceController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('hmos.manage');
         $validated = $request->validate([
             'test_id' => 'required|exists:tests,id',
             'hmo_id' => 'required|exists:hmos,id',
@@ -49,6 +51,7 @@ class TestHmoPriceController extends Controller
 
     public function destroy(TestHmoPrice $testHmoPrice)
     {
+        $this->authorize('hmos.manage');
         $testHmoPrice->delete();
 
         return response()->json(['success' => true]);

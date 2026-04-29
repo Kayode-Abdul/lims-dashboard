@@ -9,6 +9,7 @@ class PatientClassificationController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('referrals.manage');
         $classifications = PatientClassification::query()
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
@@ -25,9 +26,7 @@ class PatientClassificationController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage classifications.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -44,9 +43,7 @@ class PatientClassificationController extends Controller
 
     public function update(Request $request, PatientClassification $classification)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage classifications.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -59,9 +56,7 @@ class PatientClassificationController extends Controller
 
     public function destroy(PatientClassification $classification)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to delete classifications.');
-        }
+        $this->authorize('referrals.manage');
 
         $classification->delete();
 

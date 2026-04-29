@@ -16,8 +16,8 @@ class LabSwitcherController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is associated with this lab
-        if (!$user->labs()->where('labs.id', $lab->id)->exists()) {
+        // Check if user is associated with this lab (Super Admin bypass)
+        if (!$user->is_super_admin && !$user->labs()->where('labs.id', $lab->id)->exists()) {
             return back()->withErrors(['error' => 'You are not associated with this laboratory.']);
         }
 

@@ -9,9 +9,11 @@ use App\Traits\HasLab;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\Auditable;
+
 class TestHmoPrice extends Model
 {
-    use Syncable, SoftDeletes;
+    use Syncable, SoftDeletes, Auditable;
 
     use HasFactory, HasLab;
 

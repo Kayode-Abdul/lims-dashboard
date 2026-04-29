@@ -11,9 +11,11 @@ use App\Models\Test;
 use App\Traits\HasLab; // Added this line
 use Illuminate\Database\Eloquent\Factories\HasFactory; // Added this line for HasFactory
 
+use App\Traits\Auditable;
+
 class Appointment extends Model
 {
-    use Syncable, SoftDeletes;
+    use Syncable, SoftDeletes, Auditable;
 
     use HasFactory, HasLab; // Modified this line
     protected $fillable = [

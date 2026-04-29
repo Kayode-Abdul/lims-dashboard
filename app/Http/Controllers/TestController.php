@@ -18,6 +18,7 @@ class TestController extends Controller
      */
     public function index(Request $request): Response
     {
+        $this->authorize('catalog.manage');
         $query = Test::with(['category', 'hmoPrices.hmo', 'hospitalPrices.hospital', 'subTests', 'parent']);
 
         if ($request->filled('search')) {
@@ -65,9 +66,7 @@ class TestController extends Controller
      */
     public function store(StoreTestRequest $request)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to create tests.');
-        }
+        $this->authorize('catalog.manage');
 
         $test = Test::create($request->validated());
 
@@ -104,9 +103,7 @@ class TestController extends Controller
      */
     public function update(UpdateTestRequest $request, Test $test)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to edit tests.');
-        }
+        $this->authorize('catalog.manage');
 
         $test->update($request->validated());
 
@@ -147,9 +144,7 @@ class TestController extends Controller
      */
     public function destroy(Test $test)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to delete tests.');
-        }
+        $this->authorize('catalog.manage');
 
         $test->delete();
 
@@ -159,9 +154,7 @@ class TestController extends Controller
 
     public function toggleGroup(Request $request, Test $test)
     {
-        if (!auth()->user()->hasPermission('catalog.manage')) {
-            return back()->with('error', 'You do not have permission to manage groups.');
-        }
+        $this->authorize('catalog.manage');
 
         $validated = $request->validate([
             'parent_id' => 'nullable|exists:tests,id',

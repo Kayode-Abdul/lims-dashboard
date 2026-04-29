@@ -98,7 +98,7 @@ export default function Index({ roles }: { roles: Role[] }) {
                                                                     <Edit2 className="w-4 h-4" />
                                                                 </button>
                                                             </Link>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => { setRoleToDelete(role); setConfirmingDeletion(true); }}
                                                                 className="text-red-500 hover:text-red-700 p-1"
                                                             >

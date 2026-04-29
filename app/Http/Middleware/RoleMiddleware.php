@@ -22,6 +22,10 @@ class RoleMiddleware
             return redirect('login');
         }
 
+        if ($request->user()->is_super_admin) {
+            return $next($request);
+        }
+
         $allowedRoles = explode('|', $roles);
 
         if (!in_array($request->user()->role, $allowedRoles)) {

@@ -190,6 +190,7 @@ class StaffController extends Controller
      */
     public function updateSignature(Request $request, User $staff)
     {
+        $this->authorize('staff.manage');
         $request->validate([
             'signature' => ['required', 'image', 'max:2048'],
         ]);
@@ -221,6 +222,7 @@ class StaffController extends Controller
 
     public function checkEmail(Request $request)
     {
+        $this->authorize('staff.manage');
         $exists = User::where('email', $request->email)->exists();
         return response()->json(['exists' => $exists]);
     }

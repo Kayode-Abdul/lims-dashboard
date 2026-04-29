@@ -10,6 +10,7 @@ class DoctorController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('referrals.manage');
         $doctors = Doctor::with('hospital')
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
@@ -29,9 +30,7 @@ class DoctorController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage doctors.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'hospital_id' => 'required|exists:hospitals,id',
@@ -51,9 +50,7 @@ class DoctorController extends Controller
 
     public function update(Request $request, Doctor $doctor)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to manage doctors.');
-        }
+        $this->authorize('referrals.manage');
 
         $validated = $request->validate([
             'hospital_id' => 'required|exists:hospitals,id',
@@ -69,9 +66,7 @@ class DoctorController extends Controller
 
     public function destroy(Doctor $doctor)
     {
-        if (!auth()->user()->hasPermission('referrals.manage')) {
-            return back()->with('error', 'You do not have permission to delete doctors.');
-        }
+        $this->authorize('referrals.manage');
 
         $doctor->delete();
 

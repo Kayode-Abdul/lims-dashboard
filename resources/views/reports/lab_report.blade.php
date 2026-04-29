@@ -223,17 +223,6 @@
                         @endif
                         <td style="font-weight: bold;" class="{{ $result->is_abnormal ? 'abnormal' : '' }}">
                             {{ $result->result_value }}
-                            @if($result->sensitivities && count($result->sensitivities) > 0)
-                                <div style="font-size: 10px; font-weight: normal; margin-top: 2px; color: #1e40af;">
-                                    @foreach($result->sensitivities as $s)
-                                        @if(isset($s['type']) && $s['type'] === 'number')
-                                            [{{ str_repeat('+', (int)$s['value'] ?: 0) }}]
-                                        @elseif(isset($s['value']))
-                                            [{{ $s['value'] }}]
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @endif
                         </td>
                         <td style="font-weight: bold; text-align: right;">
                             {{ $result->reference_range ?? '' }} {{ $result->units ?? '' }}
@@ -325,6 +314,32 @@
                         <td colspan="3" style="border: none;"></td>
                     </tr>
                     @endforeach
+                    {{-- Aggregated Sensitivity Row --}}
+                    @php
+                    $allSensitivities = [];
+                    $seen = [];
+                    foreach ($results as $r) {
+                        if ($r->sensitivities && is_array($r->sensitivities)) {
+                            foreach ($r->sensitivities as $s) {
+                                $label = $s['name'] ?? $s['sensitivity_name'] ?? '';
+                                $val = (isset($s['type']) && $s['type'] === 'number')
+                                    ? str_repeat('+', (int)($s['value'] ?? 0))
+                                    : ($s['value'] ?? '');
+                                $key = $label . '[' . $val . ']';
+                                if ($label && !in_array($key, $seen)) {
+                                    $seen[] = $key;
+                                    $allSensitivities[] = $key;
+                                }
+                            }
+                        }
+                    }
+                    @endphp
+                    @if(count($allSensitivities) > 0)
+                    <tr style="border: none;">
+                        <td style="font-weight: bold; color: #1e293b; text-transform: uppercase; font-size: 11px; vertical-align: top; border: none;">Sensitivity</td>
+                        <td colspan="2" style="font-size: 11px; font-weight: bold; border: none;">{{ implode(', ', $allSensitivities) }}</td>
+                    </tr>
+                    @endif
                 </tbody>
             </table>
 
@@ -347,19 +362,8 @@
             @endif --}}
         </div>
 
-        <!-- Content End -->
-    </div>
-
-    </div>
-
-    <div class="footer">
-        @php
-        $verifiedResult = $results->first(fn($r) => $r->verified_at !== null && $r->verifiedBy);
-        $verifiedBy = $verifiedResult ? $verifiedResult->verifiedBy : null;
-        @endphp
-
-        <!-- Signature/QR Section inside Fixed Footer -->
-        <div style="margin-bottom: 5px; padding-top: 5px; margin-left: 15mm; margin-right: 15mm;">
+        <!-- Signature/QR Section - Appears only on the last page -->
+        <div style="margin-top: 30px; padding-top: 10px; border-top: none;">
             <table style="width: 100%; border: none;">
                 <tr>
                     <td style="width: 50%; text-align: left; vertical-align: bottom; border: none;">
@@ -369,36 +373,33 @@
                         @endif
                     </td>
                     <td style="width: 50%; text-align: right; vertical-align: bottom; border: none;">
+                        @php
+                        $verifiedResult = $results->first(fn($r) => $r->verified_at !== null && $r->verifiedBy);
+                        $verifiedBy = $verifiedResult ? $verifiedResult->verifiedBy : null;
+                        @endphp
+                        
                         @if($verifiedBy)
-                        <div style="text-align: center; min-width: 180px; position: relative;">
-                            <!-- Stacked Signature (Negative margin to hover) -->
+                        <div style="text-align: center; min-width: 180px; position: relative; float: right;">
                             <div style="margin-bottom: -55px; position: relative; z-index: 10;">
                                 @if($verifiedBy->signature_base64)
                                 <img src="{{ $verifiedBy->signature_base64 }}"
                                     style="height: 100px; max-width: 250px; object-fit: contain;">
                                 @else
-                                <div
-                                    style="font-family: cursive; font-size: 16px; color: #000; height: 60px; line-height: 60px;">
+                                <div style="font-family: cursive; font-size: 16px; color: #000; height: 60px; line-height: 60px;">
                                     {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
                                 </div>
                                 @endif
                             </div>
 
-                            <div
-                                style="text-align: center; padding-top: 2px;min-width: 150px;">
-                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB.
-                                    SCIENTIST.</strong>
-                                <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{
-                                    $verifiedBy->last_name }}</span>
+                            <div style="text-align: center; padding-top: 2px; min-width: 150px; border-top: 1px solid #000;">
+                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
+                                <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
                             </div>
                         </div>
                         @else
-                        <div style="text-align: center; min-width: 180px; position: relative;">
-
-                            <div style="padding-top: 2px;">
-                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB.
-                                    SCIENTIST.</strong>
-                                <span style="font-size: 8px; color: #000;"></span>
+                        <div style="text-align: center; min-width: 180px; position: relative; float: right;">
+                            <div style="padding-top: 2px; border-top: 1px solid #000;">
+                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
                             </div>
                         </div>
                         @endif
@@ -406,6 +407,11 @@
                 </tr>
             </table>
         </div>
+        <!-- Content End -->
+    </div>
+
+    <div class="footer">
+        <!-- Footer Image (Repeats on every page) -->
 
         @if(isset($lab) && isset($lab->footer_base64) && $lab->footer_base64)
         <img src="{{ $lab->footer_base64 }}" style="width: 100%; max-height: 120px; object-fit: contain;">
