@@ -22,6 +22,7 @@ interface Lab {
     footer_url?: string;
     pdf_margin_top?: string;
     web_margin_top?: string;
+    web_margin_bottom?: string;
 }
 
 interface TestResult {
@@ -144,7 +145,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
 
     const handleWhatsAppShare = async () => {
         const fileName = `LabReport_${order_number.replace(/\//g, '-')}.pdf`;
-        const pdfUrl = route('test-results.pdf', order_number.replace(/\//g, '-'));
+        const pdfUrl = route('test-results.pdf', order_number);
 
         try {
             // Check if Web Share API supports file sharing
@@ -172,7 +173,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
 
         try {
             // Fetch a zipped version for desktop to trigger easier download
-            const zipResponse = await axios.get(route('test-results.zip', orderSuffix));
+            const zipResponse = await axios.get(route('test-results.zip', order_number));
             if (zipResponse.data.url) {
                 finalPdfUrl = zipResponse.data.url;
             }
@@ -197,7 +198,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
 
     const handleDownload = async () => {
         await logPrintAction();
-        window.open(route('test-results.pdf', order_number.replace(/\//g, '-')), '_blank');
+        window.open(route('test-results.pdf', order_number), '_blank');
     };
 
     const handlePrint = async () => {
@@ -246,6 +247,23 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
 
             <div className="py-12 bg-white min-h-screen print:py-0 print:m-0 print-content">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 print:w-full print:max-w-none print:px-0">
+                    
+                    {/* BROWSER PRINT ONLY: Native Table Structure to Repeat Header/Footer Space Without Repeating Signatures */}
+                    <table className="block print:table w-full border-none">
+                        <thead className="hidden print:table-header-group border-none">
+                            <tr className="border-none"><td className="border-none p-0">
+                                <div style={{height: `${lab?.web_margin_top || '1.80'}cm`}} className="w-full"></div>
+                            </td></tr>
+                        </thead>
+                        <tfoot className="hidden print:table-footer-group border-none">
+                            <tr className="border-none"><td className="border-none p-0">
+                                <div style={{height: `${lab?.web_margin_bottom || '4.5'}cm`}} className="w-full"></div>
+                            </td></tr>
+                        </tfoot>
+                        <tbody className="block print:table-row-group border-none">
+                            <tr className="block print:table-row border-none"><td className="block print:table-cell border-none p-0 print:px-[15mm]">
+                                <div className="print-body-content">
+                    
                     <div className="mb-6 flex justify-between items-center print:hidden">
                         <Link
                             href={route('test-results.index')}
@@ -428,7 +446,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                             {/* Results Table */}
                             <div className="overflow-hidden">
                                 <h1 className="text-center text-lg font-bold mb-4">Laboratory Report</h1>
-                                <table className="min-w-full">
+                                <table className="min-w-full result-table">
                                     <thead>
                                         <tr className="bg-white">
                                             <th className="py-2 pr-6 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest group-header">Test Parameter</th>
@@ -449,8 +467,8 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                     }`}>
                                                         {res.test_order?.test?.test_name}
                                                     </td>
-                                                    <td className={`px-6 py-2 whitespace-nowrap text-xs font-bold ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
-                                                        <div className="flex items-center gap-2">
+                                                    <td className={`px-6 py-2 whitespace-pre-wrap text-xs font-bold text-left ${res.is_abnormal ? 'text-red-600' : 'text-gray-900'}`}>
+                                                        <div className="flex items-center justify-start gap-2">
                                                             {res.result_value?.replace(/ \((High|Low)\)/, '') || ''}
 
                                                             {res.is_abnormal && (
@@ -507,7 +525,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                                     <td className="py-1 pr-6 text-xs font-medium text-black-900 dark:text-gray-400 italic">
                                                                         {displayName}
                                                                     </td>
-                                                                    <td className={`px-6 py-1 text-xs font-bold ${sub.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
+                                                                    <td className={`px-6 py-1 text-xs font-bold whitespace-pre-wrap text-left ${sub.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
                                                                         {sub.value}
                                                                     </td>
                                                                     <td className="px-6 py-1 text-xs text-black-900 dark:text-gray-400 text-right">
@@ -526,7 +544,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                                 {sub.child_results?.map((child: any, i: number) => (
                                                                     <tr key={`${res.id}-sub-${key}-child-${i}`} className="border-none">
                                                                         <td className="py-1 pr-6 text-xs text-gray-500 italic"></td>
-                                                                        <td className={`px-6 py-1 text-xs font-bold ${child.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
+                                                                        <td className={`px-6 py-1 text-xs font-bold whitespace-pre-wrap text-left ${child.is_abnormal ? 'text-red-600' : 'text-gray-700'}`}>
                                                                             {child.value}
                                                                         </td>
                                                                         <td className="px-6 py-1 text-xs text-black-900 dark:text-gray-400 text-right">
@@ -538,7 +556,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                         );
                                                     });
                                                 })()}
-                                                <tr className="h-4 border-none"><td colSpan={3} className="border-none"></td></tr>
+                                                 <tr className="h-[12px] border-none"><td colSpan={3} className="border-none"></td></tr>
                                             </React.Fragment>
                                         );
                                         })}
@@ -565,7 +583,7 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                             return (
                                                 <tr className="border-none">
                                                     <td className="py-2 pr-6 text-xs font-bold text-indigo-900 dark:text-indigo-100 uppercase">Sensitivity</td>
-                                                    <td colSpan={2} className="px-6 py-2 text-xs font-bold text-gray-900">
+                                                    <td colSpan={2} className="px-6 py-2 text-xs font-bold text-gray-900 text-left">
                                                         {allSensitivities.map((s, i) => (
                                                             <span key={i}>
                                                                 {s.label}[{s.val}]{i < allSensitivities.length - 1 ? ', ' : ''}
@@ -595,11 +613,9 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                             </div>
 
                             {/* Signatures */}
-                            {/* Signatures (placed in fixed footer below for print) */}
-
-                            {/* Unified Fixed Footer for Print - appears on all pages */}
-                            <div className="hidden print:block fixed bottom-0 left-0 right-0 w-full px-[1.2cm] z-[9999]">
-                                {/* Copy of signature and QR Code section for pinning */}
+                            {/* Unified Signature for Print - Normal Flow (Prints Once on Last Page) */}
+                            <div className="hidden print:block w-full pt-8 mt-8 pb-4" style={{ pageBreakInside: 'avoid' }}>
+                                {/* Copy of signature and QR Code section */}
                                 {(() => {
                                     const signaturePath = verifiedBy?.signature_path;
                                     const signerName = verifiedBy ? `${verifiedBy.first_name} ${verifiedBy.last_name}` : null;
@@ -608,45 +624,36 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                     const direction = dept.includes('x-ray') || dept.includes('radiology') || dept.includes('scan') || cat.includes('radiology') || cat.includes('x-ray') ? 'flex-row-reverse' : 'flex-row';
                                     
                                     return (
-                                        <div className={`mb-[5px] flex w-full items-end justify-between border-t border-gray-100 pt-2 ${direction}`}>
+                                        <div className={`mb-2 flex w-full items-end justify-between pt-2 ${direction}`}>
                                             <div className="text-left space-y-1">
                                                 {renderQRCode(order_number)}
                                             </div>
 
-                                                     <div className="w-64 text-center relative flex flex-col items-center">
-                                                         <div className="relative w-full flex justify-center">
-                                                             {signaturePath ? (
-                                                                 <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                                     <img src={`/storage/${signaturePath}`} alt="Signature" className="h-20 max-w-[200px] object-contain" />
-                                                                 </div>
-                                                             ) : verifiedBy ? (
-                                                                 <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                                     <span className="font-script text-xl text-black">{signerName}</span>
-                                                                 </div>
-                                                             ) : null}
-                                                             
-                                                             <div className="w-full pt-1 mt-8">
-                                                                 <p className="text-[9px] uppercase font-bold text-black">
-                                                                     MED. LAB. SCIENTIST.
-                                                                 </p>
-                                                                 {verifiedBy && (
-                                                                     <p className="text-[9px] text-black mt-0.5">{signerName}</p>
-                                                                 )}
-                                                             </div>
-                                                         </div>
-                                                     </div>
+                                            <div className="w-64 text-center relative flex flex-col items-center">
+                                                <div className="relative w-full flex justify-center">
+                                                    {signaturePath ? (
+                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
+                                                            <img src={`/storage/${signaturePath}`} alt="Signature" className="h-20 max-w-[200px] object-contain" />
+                                                        </div>
+                                                    ) : verifiedBy ? (
+                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
+                                                            <span className="font-script text-xl text-black">{signerName}</span>
+                                                        </div>
+                                                    ) : null}
+                                                    
+                                                    <div className="w-full pt-1 mt-8">
+                                                        <p className="text-[9px] uppercase font-bold text-black pt-1 px-4 inline-block">
+                                                            MED. LAB. SCIENTIST.
+                                                        </p>
+                                                        {verifiedBy && (
+                                                            <p className="text-[9px] text-black mt-0.5">{signerName}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })()}
-
-                                {/* Footer Image placeholder - invisible but takes up space during print to avoid overlapping physical letterhead */}
-                                {lab?.footer_url ? (
-                                    <img src={lab.footer_url} alt="Footer" className="w-full max-h-48 object-contain print-invisible" />
-                                ) : (
-                                    <div className="text-center text-xs text-gray-200 py-2 border-t border-gray-100 print-invisible">
-                                        <p>{lab?.name || 'Global Diagnostics'} | {lab?.address}</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -662,6 +669,13 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                         </div>
 
                     </div>
+                    
+                                </div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                    {/* END Native Table Structure */}
+                    
                 </div>
             </div>
 
@@ -725,18 +739,52 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                         -webkit-print-color-adjust: exact !important; 
                         print-color-adjust: exact !important; 
                         color-adjust: exact !important;
-                        line-height: 1.1 !important;
+                        line-height: 1.35 !important;
+                        font-family: 'Helvetica', 'Arial', sans-serif !important;
+                        font-size: 11px !important;
                     }
-                    /* Use padding on the content wrapper instead of page margins
-                       so the browser has no margin space to print URLs/dates */
+                    .print-body-content table td, 
+                    .print-body-content table th {
+                        font-size: 11px !important;
+                        line-height: 1.35 !important;
+                        padding-top: 2px !important;
+                        padding-bottom: 2px !important;
+                    }
+                    .print-body-content table th,
+                    .print-body-content table td.px-6.py-2,
+                    .print-body-content table td.py-2.pr-6 {
+                        padding-top: 6px !important;
+                        padding-bottom: 6px !important;
+                    }
+                    .print-body-content h1 {
+                        font-size: 11px !important;
+                        text-transform: uppercase !important;
+                        border-bottom: 1px solid #e5e7eb !important;
+                        padding-bottom: 5px !important;
+                        margin-bottom: 5px !important;
+                    }
+                    .print-body-content .grid {
+                        display: table !important;
+                        width: 100% !important;
+                        gap: 0 !important;
+                    }
+                    .print-body-content .grid > div {
+                        display: table-cell !important;
+                        width: 50% !important;
+                        padding: 4px 0 !important;
+                        line-height: 1.5 !important;
+                    }
+                    /* Use repeating table groups for header/footer space. No padding needed on wrapper. */
                     .print-content {
-                        padding: ${(lab?.web_margin_top) || '1.80'}cm 1.2cm 5.0cm 1.2cm !important;
+                        padding: 0 !important;
                         margin: 0 !important;
                         width: 100% !important;
                         max-width: none !important;
                         position: relative !important;
-                        min-height: 100vh !important;
                         color: #000 !important;
+                    }
+                    .print-body-content {
+                        width: 100% !important;
                     }
                     .print-content * {
                         color: #000 !important;

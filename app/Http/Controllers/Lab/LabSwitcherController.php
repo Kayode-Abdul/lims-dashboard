@@ -24,6 +24,6 @@ class LabSwitcherController extends Controller
         // Update the current lab_id
         $user->update(['lab_id' => $lab->id]);
 
-        return Redirect::back()->with('status', "Switched to {$lab->name}");
+        return Redirect::back()->with('success', "Switched to {$lab->name}");
     }
 }

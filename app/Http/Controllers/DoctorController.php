@@ -45,7 +45,7 @@ class DoctorController extends Controller
             return response()->json($doctor->load('hospital'));
         }
 
-        return redirect()->back()->with('message', 'Doctor created successfully.');
+        return redirect()->back()->with('success', 'Doctor created successfully.');
     }
 
     public function update(Request $request, Doctor $doctor)
@@ -61,7 +61,7 @@ class DoctorController extends Controller
 
         $doctor->update($validated);
 
-        return redirect()->back()->with('message', 'Doctor updated successfully.');
+        return redirect()->back()->with('success', 'Doctor updated successfully.');
     }
 
     public function destroy(Doctor $doctor)
@@ -70,6 +70,6 @@ class DoctorController extends Controller
 
         $doctor->delete();
 
-        return redirect()->back()->with('message', 'Doctor deleted successfully.');
+        return redirect()->back()->with('success', 'Doctor deleted successfully.');
     }
 }

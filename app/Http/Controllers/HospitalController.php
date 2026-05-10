@@ -41,7 +41,7 @@ class HospitalController extends Controller
             return response()->json($hospital);
         }
 
-        return redirect()->back()->with('message', 'Hospital created successfully.');
+        return redirect()->back()->with('success', 'Hospital created successfully.');
     }
 
     public function update(Request $request, Hospital $hospital)
@@ -57,7 +57,7 @@ class HospitalController extends Controller
 
         $hospital->update($validated);
 
-        return redirect()->back()->with('message', 'Hospital updated successfully.');
+        return redirect()->back()->with('success', 'Hospital updated successfully.');
     }
 
     public function destroy(Hospital $hospital)
@@ -66,7 +66,7 @@ class HospitalController extends Controller
 
         $hospital->delete();
 
-        return redirect()->back()->with('message', 'Hospital deleted successfully.');
+        return redirect()->back()->with('success', 'Hospital deleted successfully.');
     }
 
     public function account(Request $request, Hospital $hospital)

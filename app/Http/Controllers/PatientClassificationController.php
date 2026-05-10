@@ -38,7 +38,7 @@ class PatientClassificationController extends Controller
             return response()->json($classification);
         }
 
-        return redirect()->back()->with('message', 'Classification created successfully.');
+        return redirect()->back()->with('success', 'Classification created successfully.');
     }
 
     public function update(Request $request, PatientClassification $classification)
@@ -51,7 +51,7 @@ class PatientClassificationController extends Controller
 
         $classification->update($validated);
 
-        return redirect()->back()->with('message', 'Classification updated successfully.');
+        return redirect()->back()->with('success', 'Classification updated successfully.');
     }
 
     public function destroy(PatientClassification $classification)
@@ -60,6 +60,6 @@ class PatientClassificationController extends Controller
 
         $classification->delete();
 
-        return redirect()->back()->with('message', 'Classification deleted successfully.');
+        return redirect()->back()->with('success', 'Classification deleted successfully.');
     }
 }

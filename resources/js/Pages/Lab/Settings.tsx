@@ -19,7 +19,9 @@ interface Lab {
     sync_url: string | null;
     currency: string | null;
     pdf_margin_top: string;
+    pdf_margin_bottom: string;
     web_margin_top: string;
+    web_margin_bottom: string;
 }
 
 export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; status?: string }>) {
@@ -48,7 +50,9 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
         currency: lab.currency || '₦',
         sync_url: lab.sync_url || '',
         pdf_margin_top: lab.pdf_margin_top || '1.20',
+        pdf_margin_bottom: lab.pdf_margin_bottom || '45',
         web_margin_top: lab.web_margin_top || '1.80',
+        web_margin_bottom: lab.web_margin_bottom || '4.5',
         header_image: null as File | null,
         footer_image: null as File | null,
     });
@@ -215,7 +219,7 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
                                         <p className="text-xs text-gray-500 mb-3">Adjust the space at the top of results if your pre-printed header is taller or shorter than average.</p>
                                     </div>
                                     <div>
-                                        <InputLabel htmlFor="pdf_margin_top" value="PDF Margin Top (Inches)" />
+                                        <InputLabel htmlFor="pdf_margin_top" value="PDF Header Top (Inches)" />
                                         <TextInput
                                             id="pdf_margin_top"
                                             type="number"
@@ -229,7 +233,7 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
                                     </div>
 
                                     <div>
-                                        <InputLabel htmlFor="web_margin_top" value="Web Print Top (CM)" />
+                                        <InputLabel htmlFor="web_margin_top" value="Web Print Header Top (CM)" />
                                         <TextInput
                                             id="web_margin_top"
                                             type="number"
@@ -240,6 +244,40 @@ export default function Settings({ auth, lab, status }: PageProps<{ lab: Lab; st
                                         />
                                         <p className="mt-1 text-[10px] text-gray-500 italic">Default: 1.80 | Recommended: 1.5 - 2.5</p>
                                         <InputError message={errors.web_margin_top} className="mt-2" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="col-span-full">
+                                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-widest mb-1">Footer Spacing (Adjustment)</h3>
+                                        <p className="text-xs text-gray-500 mb-3">Adjust the space at the bottom of results if your pre-printed footer is taller or shorter than average.</p>
+                                    </div>
+                                    <div>
+                                        <InputLabel htmlFor="pdf_margin_bottom" value="PDF Footer Bottom (MM)" />
+                                        <TextInput
+                                            id="pdf_margin_bottom"
+                                            type="number"
+                                            step="1"
+                                            className="mt-1 block w-full"
+                                            value={data.pdf_margin_bottom}
+                                            onChange={(e) => setData('pdf_margin_bottom', e.target.value)}
+                                        />
+                                        <p className="mt-1 text-[10px] text-gray-500 italic">Default: 45 | Recommended: 30 - 60</p>
+                                        <InputError message={errors.pdf_margin_bottom} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="web_margin_bottom" value="Web Print Footer Bottom (CM)" />
+                                        <TextInput
+                                            id="web_margin_bottom"
+                                            type="number"
+                                            step="0.05"
+                                            className="mt-1 block w-full"
+                                            value={data.web_margin_bottom}
+                                            onChange={(e) => setData('web_margin_bottom', e.target.value)}
+                                        />
+                                        <p className="mt-1 text-[10px] text-gray-500 italic">Default: 4.5 | Recommended: 3.0 - 6.0</p>
+                                        <InputError message={errors.web_margin_bottom} className="mt-2" />
                                     </div>
                                 </div>
 

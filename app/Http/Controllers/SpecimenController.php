@@ -68,7 +68,7 @@ class SpecimenController extends Controller
         // Update Test Order Status to 'collected'
         $specimen->testOrder->update(['status' => 'collected']);
 
-        return redirect()->back()->with('message', 'Sample collected successfully: ' . $sampleId);
+        return redirect()->back()->with('success', 'Sample collected successfully: ' . $sampleId);
     }
 
     public function update(Request $request, Specimen $specimen)
@@ -82,13 +82,13 @@ class SpecimenController extends Controller
 
         $specimen->update($validated);
 
-        return redirect()->back()->with('message', 'Sample updated successfully.');
+        return redirect()->back()->with('success', 'Sample updated successfully.');
     }
 
     public function destroy(Specimen $specimen)
     {
         $this->authorize('samples.collect');
         $specimen->delete();
-        return redirect()->back()->with('message', 'Sample record deleted.');
+        return redirect()->back()->with('success', 'Sample record deleted.');
     }
 }

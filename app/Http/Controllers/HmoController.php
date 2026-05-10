@@ -39,7 +39,7 @@ class HmoController extends Controller
             return response()->json($hmo);
         }
 
-        return redirect()->back()->with('message', 'HMO created successfully.');
+        return redirect()->back()->with('success', 'HMO created successfully.');
     }
 
     public function update(Request $request, Hmo $hmo)
@@ -53,7 +53,7 @@ class HmoController extends Controller
 
         $hmo->update($validated);
 
-        return redirect()->back()->with('message', 'HMO updated successfully.');
+        return redirect()->back()->with('success', 'HMO updated successfully.');
     }
 
     public function destroy(Hmo $hmo)
@@ -62,6 +62,6 @@ class HmoController extends Controller
 
         $hmo->delete();
 
-        return redirect()->back()->with('message', 'HMO deleted successfully.');
+        return redirect()->back()->with('success', 'HMO deleted successfully.');
     }
 }

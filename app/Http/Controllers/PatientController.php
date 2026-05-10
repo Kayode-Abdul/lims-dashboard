@@ -81,7 +81,7 @@ class PatientController extends Controller
         }
 
         return redirect()->route('patients.index')
-            ->with('message', 'Patient created successfully.');
+            ->with('success', 'Patient created successfully.');
     }
 
     /**
@@ -153,7 +153,7 @@ class PatientController extends Controller
         $patient->update($request->validated());
 
         return redirect()->route('patients.index')
-            ->with('message', 'Patient updated successfully.');
+            ->with('success', 'Patient updated successfully.');
     }
 
     /**
@@ -165,6 +165,6 @@ class PatientController extends Controller
 
         $patient->delete();
 
-        return redirect()->route('patients.index')->with('message', 'Patient deleted successfully.');
+        return redirect()->route('patients.index')->with('success', 'Patient deleted successfully.');
     }
 }

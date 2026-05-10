@@ -5,31 +5,48 @@
     <meta charset="utf-8">
     <title>Laboratory Report - {{ $results->first()->testOrder->order_number }}</title>
     <style>
+        /* Define page margins for the whole document */
         @page {
-            margin: 0;
+            margin: {{ $lab->pdf_margin_top ?? 1.20 }}in 15mm {{ $lab->pdf_margin_bottom ?? 45 }}mm 15mm;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Helvetica', sans-serif;
             color: #000;
             background-color: #fff;
-            line-height: 1.2;
+            line-height: 1.1;
             margin: 0;
             padding: 0;
         }
 
+        /* Fixed header sits in the top margin area */
         .header {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
+            top: -{{ $lab->pdf_margin_top ?? 1.20 }}in;
+            left: -15mm;
+            right: -15mm;
+            width: calc(100% + 30mm);
+            height: {{ $lab->pdf_margin_top ?? 1.20 }}in;
+            text-align: center;
+        }
+
+        /* Fixed footer sits in the bottom margin area */
+        .footer {
+            position: fixed;
+            bottom: -{{ $lab->pdf_margin_bottom ?? 45 }}mm;
+            left: -15mm;
+            right: -15mm;
+            width: calc(100% + 30mm);
+            height: {{ $lab->pdf_margin_bottom ?? 45 }}mm;
             text-align: center;
         }
 
         .main-content {
-            margin: {{ $lab->pdf_margin_top ?? 1.20 }}in 15mm 45mm 15mm;
-            /* Top (Header), Right, Bottom (Footer), Left */
+            width: 100%;
         }
 
         .logo {
@@ -47,17 +64,8 @@
         }
 
         .section {
-            margin-bottom: 10px;
-        }
-
-        .section-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #000;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
+            margin-bottom: 5px;
+            width: 100%;
         }
 
         .section-report-title {
@@ -65,25 +73,40 @@
             font-weight: bold;
             color: #000;
             border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 5px;
+            padding-bottom: 3px;
             margin-bottom: 5px;
             text-align: center;
             text-transform: uppercase;
         }
 
-        table {
+        table.result-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
+            margin: 0;
+            padding: 0;
+            border-spacing: 0;
         }
 
-        th,
-        td {
-            padding: 5px 0;
+        table.result-table th, 
+        table.result-table td {
+            padding: 0;
             text-align: left;
-            font-size: 11px;
+            font-size: 10px;
+            line-height: 1.0;
             border: none;
             color: #000;
+            margin: 0;
+            vertical-align: top;
+        }
+
+        table.result-table th {
+            padding-bottom: 10px;
+            font-size: 10px;
+        }
+
+        table.result-table td {
+            padding-top: 2px;
+            padding-bottom: 2px;
         }
 
         .info-grid {
@@ -94,55 +117,46 @@
         .info-item {
             display: table-cell;
             width: 50%;
-            padding: 2px 0;
+            padding: 4px 0;
             font-size: 12px;
-        }
-
-        .result-table th {
-            background-color: #fff;
+            line-height: 1.5;
         }
 
         .abnormal {
-            color: #dc2626;
+            color: #000;
             font-weight: bold;
         }
 
-        .footer {
-            position: fixed;
+        /* 1. PDF Signature Block (Absolute Bottom of content area) */
+        .signatures-pdf {
+            position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             width: 100%;
-            text-align: center;
+            page-break-inside: avoid;
         }
 
-        .signatures {
-            position: absolute;
-            bottom: 12mm;
-            left: 15mm;
-            right: 15mm;
-            border-top: none;
-            padding-top: 10px;
+        .signature-spacer {
+            height: 90px; /* Reserve space so content doesn't overlap signature */
         }
 
-        .signature-box {
-            display: inline-block;
-            width: 32%;
-            text-align: center;
-            padding-top: 10px;
-            margin-top: 0;
-            border-top: 1px solid #000;
+        /* 2. Web Print Signature Block (Standard Flow) */
+        .signatures-web {
+            display: none; /* Hidden by default */
+            width: 100%;
+            padding-top: 30px;
+            margin-top: 30px;
+            page-break-inside: avoid;
         }
 
-        .barcode {
-            margin-top: 10px;
-        }
-
-        .disclaimer {
-            margin-top: 20px;
-            font-style: italic;
-            color: #000;
-            font-size: 10px;
+        @media print {
+            .signatures-pdf, .signature-spacer {
+                display: none !important; /* Hide absolute positioning logic during browser print */
+            }
+            .signatures-web {
+                display: block !important; /* Show normal flow logic */
+            }
         }
     </style>
 </head>
@@ -150,23 +164,26 @@
 <body>
     <div class="header">
         @if(isset($lab) && isset($lab->header_base64) && $lab->header_base64)
-        <img src="{{ $lab->header_base64 }}" style="width: 100%; max-height: 200px; object-fit: contain;">
+        <img src="{{ $lab->header_base64 }}" style="width: 100%; height: 100%; object-fit: contain;">
         @else
-        <div class="logo">{{ $lab->name ?? 'GLOBAL DIAGNOSTICS' }}</div>
+        <div class="logo" style="padding-top: 20px;">{{ $lab->name ?? 'GLOBAL DIAGNOSTICS' }}</div>
         <div class="report-title">Laboratory Diagnostic Report</div>
         @endif
     </div>
 
-    <div class="main-content">
+    <div class="footer">
+        @if(isset($lab) && isset($lab->footer_base64) && $lab->footer_base64)
+        <img src="{{ $lab->footer_base64 }}" style="width: 100%; height: 100%; object-fit: contain;">
+        @endif
+    </div>
 
+    <div class="main-content">
         <div class="section">
             <div class="info-grid">
                 <div class="info-item">
                     @php
                     $firstOrder = $results->first()->testOrder;
                     $patient = $firstOrder->patient;
-
-                    // Comprehensive Age Calculation
                     $dob = \Carbon\Carbon::parse($patient->date_of_birth);
                     $now = now();
                     $diff = $dob->diff($now);
@@ -201,6 +218,11 @@
         <div class="section">
             <div class="section-report-title">Laboratory Report</div>
             <table class="result-table">
+                <colgroup>
+                    <col style="width: 33.33%;">
+                    <col style="width: 33.33%;">
+                    <col style="width: 33.33%;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Test Parameter</th>
@@ -211,19 +233,17 @@
                 <tbody>
                     @foreach($results as $result)
                     @php $isChildTest = !empty($result->testOrder->test->parent_id); @endphp
-                    <tr style="background-color: #fff; border: none;">
+                    <tr>
                         @if($isChildTest)
-                        <td style="font-weight: 600; color: #374151; text-transform: uppercase; font-size: 10px; font-style: italic;">
+                        <td style="font-weight: 600; color: #374151; text-transform: uppercase; font-size: 9px; font-style: italic;">
                             {{ $result->testOrder->test->test_name }}
                         </td>
                         @else
-                        <td style="font-weight: bold; color: #1e293b; text-transform: uppercase; font-size: 11px;">
+                        <td style="font-weight: bold; text-transform: uppercase; font-size: 10px;">
                             {{ $result->testOrder->test->test_name }}
                         </td>
                         @endif
-                        <td style="font-weight: bold;" class="{{ $result->is_abnormal ? 'abnormal' : '' }}">
-                            {{ $result->result_value }}
-                        </td>
+                        <td class="{{ $result->is_abnormal ? 'abnormal' : '' }}" style="font-weight: bold; white-space: pre-wrap;">{{ $result->result_value }}</td>
                         <td style="font-weight: bold; text-align: right;">
                             {{ $result->reference_range ?? '' }} {{ $result->units ?? '' }}
                         </td>
@@ -233,35 +253,24 @@
                     $lastSubName = ''; 
                     $orderedSubtests = [];
                     $subresultsObj = $result->subtest_results;
-
                     $definitions = $result->testOrder->test->subtest_definitions ?? [];
                     if (is_string($definitions)) $definitions = json_decode($definitions, true) ?? [];
-
                     $selectedSubtests = $result->testOrder->selected_subtests ?? [];
                     if (is_string($selectedSubtests)) $selectedSubtests = json_decode($selectedSubtests, true) ?? [];
 
-                    // 1. Array-based ordering
                     if (!empty($selectedSubtests)) {
                         foreach ($selectedSubtests as $defKey) {
                             $key = (string)$defKey;
-                            if (isset($subresultsObj[$key])) {
-                                $orderedSubtests[$key] = $subresultsObj[$key];
-                            }
+                            if (isset($subresultsObj[$key])) $orderedSubtests[$key] = $subresultsObj[$key];
                         }
                     } elseif (!empty($definitions)) {
                         foreach ($definitions as $def) {
                             $key = (string)($def['id'] ?? $def['name'] ?? $def['investigation'] ?? '');
-                            if ($key && isset($subresultsObj[$key])) {
-                                $orderedSubtests[$key] = $subresultsObj[$key];
-                            }
+                            if ($key && isset($subresultsObj[$key])) $orderedSubtests[$key] = $subresultsObj[$key];
                         }
                     }
-
-                    // 2. Append anything left over
                     foreach ($subresultsObj as $key => $sub) {
-                        if (!isset($orderedSubtests[$key])) {
-                            $orderedSubtests[$key] = $sub;
-                        }
+                        if (!isset($orderedSubtests[$key])) $orderedSubtests[$key] = $sub;
                     }
                     @endphp
                     @foreach($orderedSubtests as $sub)
@@ -270,76 +279,19 @@
                     $displaySubName = ($currentSubName === $lastSubName) ? '' : $currentSubName;
                     $lastSubName = $currentSubName;
                     @endphp
-                    <tr style="border: none;">
-                        <td
-                            style="font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top; border: none;">
+                    <tr>
+                        <td style="font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top;">
                             {{ $displaySubName }}
                         </td>
-                        <td style="font-size: 10px; vertical-align: top; border: none;"
-                            class="{{ ($sub['is_abnormal'] ?? false) ? 'abnormal' : '' }}">
-                            {{ $sub['value'] ?? '' }}
-                        </td>
-                        <td style="font-size: 10px; color: #6b7280; border: none; text-align: right;">
+                        <td style="font-size: 10px; vertical-align: top; white-space: pre-wrap; text-align: left;" class="{{ ($sub['is_abnormal'] ?? false) ? 'abnormal' : '' }}">{{ $sub['value'] ?? '' }}</td>
+                        <td style="font-size: 10px; color: #6b7280; text-align: right;">
                             {{ $sub['reference_range'] ?? $sub['reference_value'] ?? '' }} {{ $sub['units'] ?? '' }}
                         </td>
                     </tr>
-                    @if(isset($sub['additional_ranges']) && is_array($sub['additional_ranges']))
-                    @foreach($sub['additional_ranges'] as $ar)
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td style="font-size: 11px; color: #6b7280; text-align: right;">{{ $ar['range'] ?? $ar['reference_range'] ?? '' }}
-                            {{ $ar['units'] ?? '' }}
-                        </td>
-                    </tr>
                     @endforeach
                     @endif
-                    @if(isset($sub['child_results']) && is_array($sub['child_results']))
-                    @foreach($sub['child_results'] as $child)
-                    <tr style="border: none;">
-                        <td style="font-size: 10px; font-style: italic; color: #4b5563; vertical-align: top; border: none;"></td>
-                        <td style="font-size: 10px; vertical-align: top; border: none;"
-                            class="{{ ($child['is_abnormal'] ?? false) ? 'abnormal' : '' }}">
-                            {{ $child['value'] ?? '' }}
-                        </td>
-                        <td style="font-size: 10px; color: #6b7280; border: none; text-align: right;">
-                            {{ $child['reference_range'] ?? $child['reference_value'] ?? '' }} {{ $child['units'] ?? '' }}
-                        </td>
-                    </tr>
+                    <tr><td colspan="3" style="border: none; padding: 0; line-height: 1px; font-size: 1px; height: 1px;">&nbsp;</td></tr>
                     @endforeach
-                    @endif
-                    @endforeach
-                    @endif
-                    <tr style="height: 10px; border: none;">
-                        <td colspan="3" style="border: none;"></td>
-                    </tr>
-                    @endforeach
-                    {{-- Aggregated Sensitivity Row --}}
-                    @php
-                    $allSensitivities = [];
-                    $seen = [];
-                    foreach ($results as $r) {
-                        if ($r->sensitivities && is_array($r->sensitivities)) {
-                            foreach ($r->sensitivities as $s) {
-                                $label = $s['name'] ?? $s['sensitivity_name'] ?? '';
-                                $val = (isset($s['type']) && $s['type'] === 'number')
-                                    ? str_repeat('+', (int)($s['value'] ?? 0))
-                                    : ($s['value'] ?? '');
-                                $key = $label . '[' . $val . ']';
-                                if ($label && !in_array($key, $seen)) {
-                                    $seen[] = $key;
-                                    $allSensitivities[] = $key;
-                                }
-                            }
-                        }
-                    }
-                    @endphp
-                    @if(count($allSensitivities) > 0)
-                    <tr style="border: none;">
-                        <td style="font-weight: bold; color: #1e293b; text-transform: uppercase; font-size: 11px; vertical-align: top; border: none;">Sensitivity</td>
-                        <td colspan="2" style="font-size: 11px; font-weight: bold; border: none;">{{ implode(', ', $allSensitivities) }}</td>
-                    </tr>
-                    @endif
                 </tbody>
             </table>
 
@@ -352,70 +304,86 @@
             @endif
             @endforeach
 
-            @php $hasAbnormal = $results->contains('is_abnormal', true); @endphp
-            {{-- @if($hasAbnormal)
-            <div
-                style="margin-top: 15px; padding: 10px; background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 4px; font-size: 12px; color: #991b1b; text-align: center;">
-                <strong>*** ALERT: One or more results are outside the normal reference range. Please consult with your
-                    physician. ***</strong>
-            </div>
-            @endif --}}
-        </div>
+            @php
+            $verifiedResult = $results->first(fn($r) => $r->verified_at !== null && $r->verifiedBy);
+            $verifiedBy = $verifiedResult ? $verifiedResult->verifiedBy : null;
+            @endphp
 
-        <!-- Signature/QR Section - Appears only on the last page -->
-        <div style="margin-top: 30px; padding-top: 10px; border-top: none;">
-            <table style="width: 100%; border: none;">
-                <tr>
-                    <td style="width: 50%; text-align: left; vertical-align: bottom; border: none;">
-                        @if(isset($lab->qr_code_base64) && $lab->qr_code_base64)
-                        <img src="{{ $lab->qr_code_base64 }}" style="height: 40px; width: 40px;">
-                        <div style="font-size: 7px; color: #6b7280; margin-top: 2px;">Scan to Verify</div>
-                        @endif
-                    </td>
-                    <td style="width: 50%; text-align: right; vertical-align: bottom; border: none;">
-                        @php
-                        $verifiedResult = $results->first(fn($r) => $r->verified_at !== null && $r->verifiedBy);
-                        $verifiedBy = $verifiedResult ? $verifiedResult->verifiedBy : null;
-                        @endphp
-                        
-                        @if($verifiedBy)
-                        <div style="text-align: center; min-width: 180px; position: relative; float: right;">
-                            <div style="margin-bottom: -55px; position: relative; z-index: 10;">
-                                @if($verifiedBy->signature_base64)
-                                <img src="{{ $verifiedBy->signature_base64 }}"
-                                    style="height: 100px; max-width: 250px; object-fit: contain;">
-                                @else
-                                <div style="font-family: cursive; font-size: 16px; color: #000; height: 60px; line-height: 60px;">
-                                    {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
+            <!-- PDF ONLY SIGNATURE (Normal Flow, same row as QR) -->
+            <div class="signature-spacer"></div>
+            <div class="signatures-pdf">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: bottom; border: none; padding: 0;">
+                            @if(isset($lab->qr_code_base64) && $lab->qr_code_base64)
+                            <img src="{{ $lab->qr_code_base64 }}" style="height: 50px; width: 50px;">
+                            <div style="font-size: 7px; color: #6b7280; margin-top: 2px;">Scan to Verify</div>
+                            @endif
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: bottom; border: none; padding: 0;">
+                            @if($verifiedBy)
+                                <div style="text-align: center; min-width: 180px; float: right;">
+                                    @if($verifiedBy->signature_base64)
+                                    <img src="{{ $verifiedBy->signature_base64 }}" style="height: 70px; max-width: 200px; object-fit: contain;">
+                                    @else
+                                    <div style="font-family: cursive; font-size: 16px; color: #000; padding: 10px 0;">
+                                        {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
+                                    </div>
+                                    @endif
+                                    <div style="text-align: center; padding-top: 2px; min-width: 150px;">
+                                        <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
+                                        <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
+                                    </div>
                                 </div>
-                                @endif
+                            @else
+                            <div style="text-align: center; min-width: 180px; float: right;">
+                                <div style="padding-top: 2px;">
+                                    <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
+                                </div>
                             </div>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-                            <div style="text-align: center; padding-top: 2px; min-width: 150px; border-top: 1px solid #000;">
-                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
-                                <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
+            <!-- BROWSER PRINT ONLY SIGNATURE (Normal Flow) -->
+            <div class="signatures-web">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: bottom; border: none; padding: 0;">
+                            @if(isset($lab->qr_code_base64) && $lab->qr_code_base64)
+                            <img src="{{ $lab->qr_code_base64 }}" style="height: 50px; width: 50px;">
+                            <div style="font-size: 7px; color: #6b7280; margin-top: 2px;">Scan to Verify</div>
+                            @endif
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: bottom; border: none; padding: 0;">
+                            @if($verifiedBy)
+                                <div style="text-align: center; min-width: 180px; float: right;">
+                                    @if($verifiedBy->signature_base64)
+                                    <img src="{{ $verifiedBy->signature_base64 }}" style="height: 70px; max-width: 200px; object-fit: contain;">
+                                    @else
+                                    <div style="font-family: cursive; font-size: 16px; color: #000; padding: 10px 0;">
+                                        {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
+                                    </div>
+                                    @endif
+                                    <div style="text-align: center; padding-top: 2px; min-width: 150px;">
+                                        <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
+                                        <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
+                                    </div>
+                                </div>
+                            @else
+                            <div style="text-align: center; min-width: 180px; float: right;">
+                                <div style="padding-top: 2px;">
+                                    <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
+                                </div>
                             </div>
-                        </div>
-                        @else
-                        <div style="text-align: center; min-width: 180px; position: relative; float: right;">
-                            <div style="padding-top: 2px; border-top: 1px solid #000;">
-                                <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
-                            </div>
-                        </div>
-                        @endif
-                    </td>
-                </tr>
-            </table>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
-        <!-- Content End -->
-    </div>
-
-    <div class="footer">
-        <!-- Footer Image (Repeats on every page) -->
-
-        @if(isset($lab) && isset($lab->footer_base64) && $lab->footer_base64)
-        <img src="{{ $lab->footer_base64 }}" style="width: 100%; max-height: 120px; object-fit: contain;">
-        @endif
     </div>
 </body>
 

@@ -65,6 +65,6 @@ class SubscriptionController extends Controller
             'expires_at' => $newExpiry,
         ]);
 
-        return redirect()->back()->with('message', "Subscription extended by {$key->duration_days} days. New expiry: " . $newExpiry->format('Y-m-d'));
+        return redirect()->back()->with('success', "Subscription extended by {$key->duration_days} days. New expiry: " . $newExpiry->format('Y-m-d'));
     }
 }

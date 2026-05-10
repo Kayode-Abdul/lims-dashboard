@@ -259,7 +259,7 @@ export default function Index({ auth, results, filters }: PageProps<{
                                                                 : 'text-orange-600'
                                                         : 'text-green-600'
                                                         }`}>
-                                                        {res.result_value?.replace(/ \((High|Low)\)/, '') || ''}
+                                                        <span className="whitespace-pre-wrap">{res.result_value?.replace(/ \((High|Low)\)/, '') || ''}</span>
                                                         {res.is_abnormal && res.result_value && (
                                                             <span className={`ml-1 text-[9px] px-1 rounded ${res.result_value.includes('(High)')
                                                                 ? 'bg-red-100 text-red-800'

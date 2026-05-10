@@ -53,7 +53,7 @@ class AppointmentController extends Controller
         Appointment::create($request->validated());
 
         return redirect()->route('appointments.index')
-            ->with('message', 'Appointment scheduled successfully.');
+            ->with('success', 'Appointment scheduled successfully.');
     }
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
@@ -62,7 +62,7 @@ class AppointmentController extends Controller
         $appointment->update($request->validated());
 
         return redirect()->route('appointments.index')
-            ->with('message', 'Appointment updated successfully.');
+            ->with('success', 'Appointment updated successfully.');
     }
 
     public function destroy(Appointment $appointment)
@@ -71,6 +71,6 @@ class AppointmentController extends Controller
         $appointment->delete();
 
         return redirect()->route('appointments.index')
-            ->with('message', 'Appointment cancelled and removed.');
+            ->with('success', 'Appointment cancelled and removed.');
     }
 }

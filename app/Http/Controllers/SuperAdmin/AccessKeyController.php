@@ -36,7 +36,7 @@ class AccessKeyController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('message', "$count access keys generated successfully.");
+        return redirect()->back()->with('success', "$count access keys generated successfully.");
     }
 
     public function destroy(AccessKey $accessKey)
@@ -46,6 +46,6 @@ class AccessKeyController extends Controller
         }
 
         $accessKey->delete();
-        return redirect()->back()->with('message', 'Access key deleted.');
+        return redirect()->back()->with('success', 'Access key deleted.');
     }
 }

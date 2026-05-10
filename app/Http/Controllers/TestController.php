@@ -95,7 +95,7 @@ class TestController extends Controller
         }
 
         return redirect()->route('tests.index')
-            ->with('message', 'Test created successfully.');
+            ->with('success', 'Test created successfully.');
     }
 
     /**
@@ -136,7 +136,7 @@ class TestController extends Controller
         }
 
         return redirect()->route('tests.index')
-            ->with('message', 'Test updated successfully.');
+            ->with('success', 'Test updated successfully.');
     }
 
     /**
@@ -149,7 +149,7 @@ class TestController extends Controller
         $test->delete();
 
         return redirect()->route('tests.index')
-            ->with('message', 'Test deleted successfully.');
+            ->with('success', 'Test deleted successfully.');
     }
 
     public function toggleGroup(Request $request, Test $test)
@@ -162,6 +162,6 @@ class TestController extends Controller
 
         $test->update(['parent_id' => $validated['parent_id']]);
 
-        return back()->with('message', 'Test group assignment updated.');
+        return back()->with('success', 'Test group assignment updated.');
     }
 }

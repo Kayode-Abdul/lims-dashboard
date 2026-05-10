@@ -13,9 +13,11 @@ use App\Http\Requests\UpdateTestOrderRequest;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Traits\HandlesImages;
 
 class TestOrderController extends Controller
 {
+    use HandlesImages;
     public function index(Request $request)
     {
         $this->authorize('orders.view');
@@ -183,6 +185,10 @@ class TestOrderController extends Controller
 
         $lab = \App\Models\Lab::find(auth()->user()->lab_id);
         
+        // Convert images to Base64 for Invoice PDF
+        $lab->header_base64 = $this->imageToBase64($lab->header_image_path);
+        $lab->footer_base64 = $this->imageToBase64($lab->footer_image_path);
+
         $totalPrice = $orders->sum('price');
         $totalDiscount = $orders->sum('discount');
         $totalPaid = $orders->sum('amount_paid');
@@ -471,7 +477,7 @@ class TestOrderController extends Controller
         }
 
         return redirect()->route('test-orders.index')
-            ->with('message', "{$createdOrders} test(s) ordered under {$batchOrderNumber}.");
+            ->with('success', "{$createdOrders} test(s) ordered under {$batchOrderNumber}.");
     }
 
     public function updateStatus(Request $request, TestOrder $testOrder)
@@ -483,7 +489,7 @@ class TestOrderController extends Controller
 
         $testOrder->update(['status' => $request->status]);
 
-        return back()->with('message', 'Status updated successfully.');
+        return back()->with('success', 'Status updated successfully.');
     }
 
     public function updateBatchStatus(Request $request, string $orderNumber)
@@ -496,7 +502,7 @@ class TestOrderController extends Controller
         TestOrder::where('order_number', $orderNumber)
             ->update(['status' => $request->status]);
 
-        return back()->with('message', 'All tests marked as ' . $request->status);
+        return back()->with('success', 'All tests marked as ' . $request->status);
     }
 
     public function edit(string $orderNumber)
@@ -666,7 +672,7 @@ class TestOrderController extends Controller
         });
 
         return redirect()->route('test-orders.show-batch', $orderNumber)
-            ->with('message', 'Order updated successfully.');
+            ->with('success', 'Order updated successfully.');
     }
 
     public function update(UpdateTestOrderRequest $request, TestOrder $testOrder)
@@ -676,7 +682,7 @@ class TestOrderController extends Controller
         $testOrder->update($request->validated());
 
         return redirect()->route('test-orders.index')
-            ->with('message', 'Order updated successfully.');
+            ->with('success', 'Order updated successfully.');
     }
 
     public function destroy(TestOrder $testOrder)
@@ -686,7 +692,7 @@ class TestOrderController extends Controller
         $testOrder->delete();
 
         return redirect()->route('test-orders.index')
-            ->with('message', 'Order deleted successfully.');
+            ->with('success', 'Order deleted successfully.');
     }
 
     public function destroyBatch(string $orderNumber)
@@ -710,6 +716,6 @@ class TestOrderController extends Controller
         });
 
         return redirect()->route('test-orders.index')
-            ->with('message', 'Entire order ' . $orderNumber . ' has been deleted.');
+            ->with('success', 'Entire order ' . $orderNumber . ' has been deleted.');
     }
 }

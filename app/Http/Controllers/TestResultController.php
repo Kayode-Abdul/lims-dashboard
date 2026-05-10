@@ -14,11 +14,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Traits\HandlesImages;
 
 
 
 class TestResultController extends Controller
 {
+    use HandlesImages;
     public function index(Request $request)
     {
         $this->authorize('orders.view');
@@ -147,7 +149,7 @@ class TestResultController extends Controller
             }
 
             return redirect()->route('test-orders.show-batch', $testOrder->order_number)
-                ->with('message', 'Result recorded successfully.');
+                ->with('success', 'Result recorded successfully.');
         } catch (\Exception $e) {
             Log::error("Failed to save test result: " . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to save result. Please check your inputs and try again.');
@@ -163,13 +165,12 @@ class TestResultController extends Controller
             'verified_at' => now(),
         ]);
 
-        return redirect()->back()->with('message', 'Result verified successfully.');
+        return redirect()->back()->with('success', 'Result verified successfully.');
     }
 
     public function downloadPdf(string $orderNumber)
     {
         $this->authorize('orders.view');
-        $orderNumber = str_replace('-', '/', $orderNumber);
         $results = TestResult::whereHas('testOrder', function ($q) use ($orderNumber) {
             $q->where('order_number', $orderNumber);
         })->with(['testOrder.patient.hmo', 'testOrder.test.category', 'testOrder.test.parent', 'testOrder.test.subTests', 'verifiedBy', 'testOrder.lab', 'testOrder.hospital', 'testOrder.doctor'])->orderBy('test_order_id', 'asc')->get();
@@ -343,36 +344,9 @@ class TestResultController extends Controller
 
         Mail::to($request->email)->send(new ResultShared($results->first(), $pdfContent));
 
-        return redirect()->back()->with('message', 'Full lab report sent successfully via email.');
+        return redirect()->back()->with('success', 'Full lab report sent successfully via email.');
     }
 
-    private function imageToBase64($path)
-    {
-        if (!$path || !Storage::disk('public')->exists($path)) {
-            return null;
-        }
 
-        try {
-            $image = Storage::disk('public')->get($path);
-            $type = Storage::disk('public')->mimeType($path);
-            return 'data:' . $type . ';base64,' . base64_encode($image);
-        } catch (\Exception $e) {
-            Log::error("Failed to convert image to base64: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    private function externalImageToBase64($url)
-    {
-        try {
-            $image = file_get_contents($url);
-            if ($image === false) return null;
-            $base64 = base64_encode($image);
-            return 'data:image/png;base64,' . $base64;
-        } catch (\Exception $e) {
-            Log::error("Failed to fetch external image to base64: " . $e->getMessage());
-            return null;
-        }
-    }
 
 }

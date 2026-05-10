@@ -30,7 +30,7 @@
 
         .main-content {
             @if(!empty($is_pdf))
-            margin: {{ $lab->pdf_margin_top ?? 1.20 }}in 15mm 30mm 15mm;
+            margin: {{ $lab->pdf_margin_top ?? 1.20 }}in 15mm {{ ($lab->pdf_margin_bottom ?? 45) / 25.4 }}in 15mm;
             @else
             max-width: 800px;
             margin: 0 auto;

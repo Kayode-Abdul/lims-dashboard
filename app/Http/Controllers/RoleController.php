@@ -62,7 +62,7 @@ class RoleController extends Controller
         ]);
 
         return redirect()->route('roles.index')
-            ->with('message', 'Role created successfully.');
+            ->with('success', 'Role created successfully.');
     }
 
     /**
@@ -111,7 +111,7 @@ class RoleController extends Controller
         ]);
 
         return redirect()->route('roles.index')
-            ->with('message', 'Role updated successfully.');
+            ->with('success', 'Role updated successfully.');
     }
 
     /**
@@ -128,6 +128,6 @@ class RoleController extends Controller
         $role->delete();
 
         return redirect()->route('roles.index')
-            ->with('message', 'Role deleted successfully.');
+            ->with('success', 'Role deleted successfully.');
     }
 }

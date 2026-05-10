@@ -38,7 +38,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('profile.edit')->with('success', 'Profile updated successfully.');
     }
 
     /**
@@ -93,6 +93,6 @@ class ProfileController extends Controller
             $lab->update(['logo_path' => $path]);
         }
 
-        return Redirect::route('profile.edit')->with('status', 'lab-logo-updated');
+        return Redirect::route('profile.edit')->with('success', 'Laboratory logo updated successfully.');
     }
 }

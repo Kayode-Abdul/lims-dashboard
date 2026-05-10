@@ -52,7 +52,9 @@ class LabSettingsController extends Controller
             'sync_url' => 'nullable|url|max:255',
             'currency' => 'nullable|string|max:10',
             'pdf_margin_top' => 'nullable|numeric|min:0|max:10',
+            'pdf_margin_bottom' => 'nullable|numeric|min:0|max:100',
             'web_margin_top' => 'nullable|numeric|min:0|max:10',
+            'web_margin_bottom' => 'nullable|numeric|min:0|max:20',
             'header_image' => 'nullable|image|max:2048', // 2MB Max
             'footer_image' => 'nullable|image|max:2048', // 2MB Max
         ]);
@@ -77,6 +79,6 @@ class LabSettingsController extends Controller
 
         $lab->update($updateData);
 
-        return Redirect::route('lab.settings.edit')->with('status', 'lab-settings-updated');
+        return Redirect::route('lab.settings.edit')->with('success', 'Laboratory settings updated successfully.');
     }
 }

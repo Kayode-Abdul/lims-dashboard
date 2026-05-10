@@ -579,9 +579,9 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                     <div className="flex items-center gap-4">
                                                         <div>
                                                             <span className="text-xs text-gray-500">Result:</span>
-                                                            <span className={`ml-2 font-bold ${order.result.is_abnormal ? 'text-red-600' : 'text-green-600'}`}>
+                                                            <span className={`ml-2 font-bold whitespace-pre-wrap ${order.result.is_abnormal ? 'text-red-600' : 'text-green-600'}`}>
                                                                 {(order.result.result_value || '').replace(/ \((High|Low)\)/, '')}
-                                                                {order.result.units && <span className="text-xs text-gray-500 ml-1">{order.result.units}</span>}
+                                                                {order.result.units && <span className="text-xs text-gray-500 ml-1 whitespace-nowrap">{order.result.units}</span>}
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -746,7 +746,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                 <InputLabel htmlFor="result_value" value="Result Value" />
                                 <TextInput
                                     id="result_value"
-                                    className="mt-1 block w-full text-lg font-bold"
+                                    className="mt-1 block w-full text-lg font-bold whitespace-pre"
                                     value={data.result_value}
                                     onChange={(e) => setData('result_value', e.target.value)}
                                     required={Object.keys(data.subtest_results).length === 0}
@@ -867,7 +867,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                 <div className="flex gap-4">
                                                     <div className="flex-1">
                                                         <TextInput
-                                                            className="w-full"
+                                                            className="w-full whitespace-pre"
                                                             value={res.value || ''}
                                                             onChange={(e) => setData('subtest_results', {
                                                                 ...data.subtest_results,
@@ -908,7 +908,7 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
                                                         <div className="absolute left-4 top-0 bottom-1/2 w-px bg-gray-300 dark:bg-gray-600"></div>
                                                         <div className="flex-1">
                                                             <TextInput
-                                                                className="w-full h-8 text-sm"
+                                                                className="w-full h-8 text-sm whitespace-pre"
                                                                 value={child.value || ''}
                                                                 onChange={(e) => {
                                                                     const updated = { ...data.subtest_results };

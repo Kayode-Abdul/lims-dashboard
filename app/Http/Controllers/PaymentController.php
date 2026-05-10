@@ -76,7 +76,7 @@ class PaymentController extends Controller
             }
         });
 
-        return redirect()->back()->with('message', 'Batch payment recorded successfully.');
+        return redirect()->back()->with('success', 'Batch payment recorded successfully.');
     }
 
     public function index(Request $request)
@@ -141,7 +141,7 @@ class PaymentController extends Controller
             ]);
         });
 
-        return redirect()->back()->with('message', 'Payment recorded successfully.');
+        return redirect()->back()->with('success', 'Payment recorded successfully.');
     }
 
     public function destroy(Payment $payment)
@@ -167,6 +167,6 @@ class PaymentController extends Controller
             $payment->delete();
         });
 
-        return redirect()->back()->with('message', 'Payment deleted and order updated.');
+        return redirect()->back()->with('success', 'Payment deleted and order updated.');
     }
 }

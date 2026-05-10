@@ -37,6 +37,8 @@ export default function Authenticated({
             setToast({ message: flash.error, type: 'error' });
         } else if (flash.message) {
             setToast({ message: flash.message, type: 'info' });
+        } else if (flash.status) {
+            setToast({ message: flash.status, type: 'success' });
         }
     }, [flash]);
 

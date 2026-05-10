@@ -48,6 +48,6 @@ class DashboardController extends Controller
             'expires_at' => now()->addMonths($request->duration_months),
         ]);
 
-        return redirect()->back()->with('message', "Laboratory '{$lab->name}' has been activated for {$request->duration_months} months.");
+        return redirect()->back()->with('success', "Laboratory '{$lab->name}' has been activated for {$request->duration_months} months.");
     }
 }

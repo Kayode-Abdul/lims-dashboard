@@ -73,7 +73,7 @@ class LabController extends Controller
             $user->labs()->attach($lab->id, ['is_active' => true]);
         }
 
-        return redirect()->route('super-admin.labs.index')->with('message', 'Laboratory and Admin created successfully.');
+        return redirect()->route('super-admin.labs.index')->with('success', 'Laboratory and Admin created successfully.');
     }
 
     public function update(Request $request, Lab $lab)
@@ -89,6 +89,6 @@ class LabController extends Controller
 
         $lab->update($validated);
 
-        return redirect()->back()->with('message', 'Laboratory updated successfully.');
+        return redirect()->back()->with('success', 'Laboratory updated successfully.');
     }
 }

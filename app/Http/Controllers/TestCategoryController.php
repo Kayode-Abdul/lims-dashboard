@@ -47,7 +47,7 @@ class TestCategoryController extends Controller
         }
 
         return redirect()->route('test-categories.index')
-            ->with('message', 'Category created successfully.');
+            ->with('success', 'Category created successfully.');
     }
 
     /**
@@ -60,7 +60,7 @@ class TestCategoryController extends Controller
         $testCategory->update($request->validated());
 
         return redirect()->route('test-categories.index')
-            ->with('message', 'Category updated successfully.');
+            ->with('success', 'Category updated successfully.');
     }
 
     /**
@@ -74,6 +74,6 @@ class TestCategoryController extends Controller
         $testCategory->delete();
 
         return redirect()->route('test-categories.index')
-            ->with('message', 'Category deleted successfully.');
+            ->with('success', 'Category deleted successfully.');
     }
 }

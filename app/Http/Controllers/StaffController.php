@@ -125,7 +125,7 @@ class StaffController extends Controller
         $user->labs()->attach($lab->id, ['is_active' => true]);
 
         return redirect()->route('staff.index')
-            ->with('message', 'Staff member created successfully.');
+            ->with('success', 'Staff member created successfully.');
     }
     public function show(User $staff): Response
     {
@@ -182,7 +182,7 @@ class StaffController extends Controller
         $staff->update($data);
 
         return redirect()->route('staff.index')
-            ->with('message', 'Staff profile updated successfully.');
+            ->with('success', 'Staff profile updated successfully.');
     }
 
     /**
@@ -204,7 +204,7 @@ class StaffController extends Controller
         $staff->update(['signature_path' => $path]);
 
         return redirect()->back()
-            ->with('message', 'Signature updated successfully.');
+            ->with('success', 'Signature updated successfully.');
     }
 
     /**
@@ -217,7 +217,7 @@ class StaffController extends Controller
         $staff->update(['is_active' => false]);
 
         return redirect()->route('staff.index')
-            ->with('message', 'Staff member deactivated successfully.');
+            ->with('success', 'Staff member deactivated successfully.');
     }
 
     public function checkEmail(Request $request)
