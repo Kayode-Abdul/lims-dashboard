@@ -45,8 +45,8 @@ class TestController extends Controller
 
         $tests = $query->latest()->paginate(15)->withQueryString();
         $categories = TestCategory::where('is_active', true)->orderBy('name')->get();
-        $hmos = Hmo::all();
-        $hospitals = \App\Models\Hospital::all();
+        $hmos = Hmo::orderBy('name')->get();
+        $hospitals = \App\Models\Hospital::orderBy('name')->get();
         $groupTests = Test::where('is_group', true)->orderBy('test_name')->get(['id', 'test_name', 'test_code', 'is_group', 'has_subtests', 'subtest_definitions', 'parent_id']);
         $allTests = Test::where('is_group', false)->orderBy('test_name')->get(['id', 'test_name', 'test_code', 'is_group', 'has_subtests', 'subtest_definitions', 'parent_id']);
 

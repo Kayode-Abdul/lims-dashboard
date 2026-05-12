@@ -629,27 +629,25 @@ export default function Show({ auth, results, lab, order_number }: PageProps<{ r
                                                 {renderQRCode(order_number)}
                                             </div>
 
-                                            <div className="w-64 text-center relative flex flex-col items-center">
-                                                <div className="relative w-full flex justify-center">
-                                                    {signaturePath ? (
-                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                            <img src={`/storage/${signaturePath}`} alt="Signature" className="h-20 max-w-[200px] object-contain" />
-                                                        </div>
-                                                    ) : verifiedBy ? (
-                                                        <div className="absolute bottom-[20px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                                            <span className="font-script text-xl text-black">{signerName}</span>
-                                                        </div>
-                                                    ) : null}
-                                                    
-                                                    <div className="w-full pt-1 mt-8">
-                                                        <p className="text-[9px] uppercase font-bold text-black pt-1 px-4 inline-block">
-                                                            MED. LAB. SCIENTIST.
-                                                        </p>
-                                                        {verifiedBy && (
-                                                            <p className="text-[9px] text-black mt-0.5">{signerName}</p>
-                                                        )}
-                                                    </div>
+                                            <div className="w-64 text-center relative flex flex-col items-center pt-10">
+                                                <div className="w-full">
+                                                    <p className="text-[9px] uppercase font-bold text-black pt-1 px-4 inline-block border-t border-black">
+                                                        MED. LAB. SCIENTIST.
+                                                    </p>
+                                                    {verifiedBy && (
+                                                        <p className="text-[9px] text-black mt-0.5">{signerName}</p>
+                                                    )}
                                                 </div>
+
+                                                {signaturePath ? (
+                                                    <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-[9999]">
+                                                        <img src={`/storage/${signaturePath}`} alt="Signature" className="h-24 max-w-[200px] object-contain" />
+                                                    </div>
+                                                ) : verifiedBy ? (
+                                                    <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none z-[9999]">
+                                                        <span className="font-script text-3xl text-black">{signerName}</span>
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         </div>
                                     );

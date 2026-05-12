@@ -15,7 +15,7 @@
         }
 
         body {
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             color: #000;
             background-color: #fff;
             line-height: 1.1;
@@ -322,18 +322,23 @@
                         </td>
                         <td style="width: 50%; text-align: right; vertical-align: bottom; border: none; padding: 0;">
                             @if($verifiedBy)
-                                <div style="text-align: center; min-width: 180px; float: right;">
-                                    @if($verifiedBy->signature_base64)
-                                    <img src="{{ $verifiedBy->signature_base64 }}" style="height: 70px; max-width: 200px; object-fit: contain;">
-                                    @else
-                                    <div style="font-family: cursive; font-size: 16px; color: #000; padding: 10px 0;">
-                                        {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
-                                    </div>
+                                <div style="text-align: center; min-width: 180px; float: right; margin-top: 10px; position: relative;">
+                                    @if($verifiedBy)
+                                        <div style="padding-top: 40px;">
+                                            <strong style="font-size: 8px; display: block; color: #000; text-transform: uppercase;">MED. LAB. SCIENTIST.</strong>
+                                            <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
+                                        </div>
+                                        
+                                        @if($verifiedBy->signature_base64)
+                                            <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 999; pointer-events: none;">
+                                                <img src="{{ $verifiedBy->signature_base64 }}" style="height: 90px; max-width: 200px; object-fit: contain; display: block; margin: 0 auto;">
+                                            </div>
+                                        @else
+                                            <div style="position: absolute; top: 15px; left: 0; right: 0; z-index: 999; font-family: cursive; font-size: 16px; color: #000; pointer-events: none;">
+                                                {{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}
+                                            </div>
+                                        @endif
                                     @endif
-                                    <div style="text-align: center; padding-top: 2px; min-width: 150px;">
-                                        <strong style="font-size: 8px; display: block; color: #000;">MED. LAB. SCIENTIST.</strong>
-                                        <span style="font-size: 8px; color: #000;">{{ $verifiedBy->first_name }} {{ $verifiedBy->last_name }}</span>
-                                    </div>
                                 </div>
                             @else
                             <div style="text-align: center; min-width: 180px; float: right;">

@@ -10,7 +10,7 @@
         }
 
         body {
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             color: #333;
             line-height: 1.4;
             margin: 0;

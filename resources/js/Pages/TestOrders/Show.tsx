@@ -183,8 +183,9 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
 
         // Determine if patient is a child (used for age-based range selection)
         const isChild = (() => {
-            if (patient?.age_group === 'child') return true;
-            if (patient?.age_group === 'adult') return false;
+            const ageGroup = patient?.age_group?.toLowerCase();
+            if (ageGroup === 'child') return true;
+            if (ageGroup === 'adult') return false;
             if (patient?.date_of_birth) {
                 const dob = new Date(patient.date_of_birth);
                 const today = new Date();
@@ -210,10 +211,12 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
             ) : null;
 
             let subRef = existing.reference_range || definition?.reference_range || definition?.reference_value || '';
+            const sex = patient?.sex?.toLowerCase();
+
             // Priority: sex-specific > age-specific > general
-            if (patient?.sex === 'Male' && definition?.reference_range_male) {
+            if (sex === 'male' && definition?.reference_range_male) {
                 subRef = definition.reference_range_male;
-            } else if (patient?.sex === 'Female' && definition?.reference_range_female) {
+            } else if (sex === 'female' && definition?.reference_range_female) {
                 subRef = definition.reference_range_female;
             } else if (isChild && definition?.reference_range_child) {
                 subRef = definition.reference_range_child;
@@ -250,11 +253,12 @@ export default function Show({ auth, orderNumber, patient, orderedBy, hospital, 
         });
 
         let mainRef = order.result?.reference_range || order.test.reference_range || '';
+        const patientSex = patient?.sex?.toLowerCase();
 
         // Priority: sex-specific > age-specific > general
-        if (patient?.sex === 'Male' && order.test.reference_range_male) {
+        if (patientSex === 'male' && order.test.reference_range_male) {
             mainRef = order.test.reference_range_male;
-        } else if (patient?.sex === 'Female' && order.test.reference_range_female) {
+        } else if (patientSex === 'female' && order.test.reference_range_female) {
             mainRef = order.test.reference_range_female;
         } else if (isChild && order.test.reference_range_child) {
             mainRef = order.test.reference_range_child;

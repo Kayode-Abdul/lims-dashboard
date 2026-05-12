@@ -14,9 +14,11 @@ use App\Models\Hmo;
 use App\Models\Hospital;
 use App\Models\Doctor;
 use Illuminate\Support\Str;
+use App\Traits\HandlesImages;
 
 class AccountingController extends Controller
 {
+    use HandlesImages;
     public function index(Request $request): Response
     {
         $this->authorize('accounting.view');
@@ -136,6 +138,71 @@ class AccountingController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Expense recorded successfully.');
+    }
+
+    public function exportSourcePdf(Request $request)
+    {
+        $this->authorize('accounting.view');
+        $labId = auth()->user()->lab_id;
+        $sourceType = $request->source_type;
+        $sourceName = $request->source_name;
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
+        $query = TestOrder::where('test_orders.lab_id', $labId)
+            ->join('patients', 'test_orders.patient_id', '=', 'patients.id')
+            ->leftJoin('hospitals', 'test_orders.hospital_id', '=', 'hospitals.id')
+            ->leftJoin('doctors', 'test_orders.doctor_id', '=', 'doctors.id')
+            ->leftJoin('hmos', DB::raw('COALESCE(test_orders.hmo_id, patients.hmo_id)'), '=', 'hmos.id')
+            ->select('test_orders.*')
+            ->with(['patient', 'test', 'hospital', 'doctor']);
+
+        $query->whereExists(function ($q) use ($startDate, $endDate) {
+            $q->select(DB::raw(1))
+                ->from('payments')
+                ->whereNull('payments.deleted_at')
+                ->whereColumn('payments.test_order_id', 'test_orders.id')
+                ->whereBetween('payments.payment_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        });
+
+        if ($sourceType === 'Hospital') {
+            $query->where('hospitals.name', $sourceName);
+        } elseif ($sourceType === 'Doctor') {
+            $query->where('doctors.name', $sourceName);
+        } elseif ($sourceType === 'HMO') {
+            $query->where('hmos.name', $sourceName);
+        } else {
+            $query->where('test_orders.patient_type', 'walk-in');
+        }
+
+        $orders = $query->distinct('test_orders.id')->get();
+
+        foreach ($orders as $order) {
+            $order->period_payments = DB::table('payments')
+                ->where('test_order_id', $order->id)
+                ->whereNull('deleted_at')
+                ->whereBetween('payment_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->sum('amount_paid');
+        }
+
+        $lab = auth()->user()->lab;
+        
+        // Use trait for images if available or use manual base64 conversion
+        if (method_exists($this, 'imageToBase64')) {
+            $lab->header_base64 = $this->imageToBase64($lab->header_image_path);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.accounting_source', [
+            'orders' => $orders,
+            'lab' => $lab,
+            'sourceName' => $sourceName,
+            'sourceType' => $sourceType,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ]);
+
+        $filename = Str::slug($sourceName . '_analysis', '_') . '.pdf';
+        return $pdf->download($filename);
     }
 
     public function getSourcePatients(Request $request)

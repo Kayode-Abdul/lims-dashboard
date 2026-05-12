@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
                     // Accounting
                     Route::get('accounting', [\App\Http\Controllers\AccountingController::class, 'index'])->name('accounting.index');
                     Route::get('accounting/source-patients', [\App\Http\Controllers\AccountingController::class, 'getSourcePatients'])->name('accounting.source-patients');
+                    Route::get('accounting/export-pdf', [\App\Http\Controllers\AccountingController::class, 'exportSourcePdf'])->name('accounting.export-pdf');
                     Route::post('accounting/batch-pay', [\App\Http\Controllers\AccountingController::class, 'batchPaySource'])->name('accounting.batch-pay');
                     Route::post('expenses', [\App\Http\Controllers\AccountingController::class, 'storeExpense'])->name('expenses.store');
                     Route::delete('expenses/{expense}', [\App\Http\Controllers\AccountingController::class, 'destroyExpense'])->name('expenses.destroy');

@@ -111,18 +111,18 @@ class TestResultController extends Controller
 
             // Determine age group
             $isChild = false;
-            if ($patient->age_group === 'child') {
+            if (strcasecmp($patient->age_group, 'child') === 0) {
                 $isChild = true;
-            } elseif ($patient->age_group === 'adult') {
+            } elseif (strcasecmp($patient->age_group, 'adult') === 0) {
                 $isChild = false;
             } elseif ($patient->date_of_birth) {
                 $isChild = $patient->date_of_birth->diffInYears(now()) < 18;
             }
 
             // Priority: sex-specific > age-specific > general
-            if ($patient->sex === 'Male' && !empty($test->reference_range_male)) {
+            if (strcasecmp($patient->sex, 'Male') === 0 && !empty($test->reference_range_male)) {
                 $validated['reference_range'] = $test->reference_range_male;
-            } elseif ($patient->sex === 'Female' && !empty($test->reference_range_female)) {
+            } elseif (strcasecmp($patient->sex, 'Female') === 0 && !empty($test->reference_range_female)) {
                 $validated['reference_range'] = $test->reference_range_female;
             } elseif ($isChild && !empty($test->reference_range_child)) {
                 $validated['reference_range'] = $test->reference_range_child;
